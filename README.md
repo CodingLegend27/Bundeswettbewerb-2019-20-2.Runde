@@ -1,4 +1,4 @@
-# Bundeswettbewerb-2019-20-2.Runde
+# 2. Runde des Bundeswettbewerb Informatik 2019/20
 jetzt nur noch in Einzelarbeit
 
 Implementierung erfolgt in der Programmiersprache Python
