@@ -2,6 +2,27 @@
 # from PySide2.QtCore import Qt
 # from PySide2.QtWidgets import *
 from tkinter import *
+import math
+
+class Punkt():
+     def __init__(self, x: int, y: int):
+          self.x = x
+          self.y = y
+     
+class Kante():
+     def __init__(self, startpunkt: Punkt, zielpunkt: Punkt):
+          self.startpunkt = startpunkt
+          self.zielpunkt = zielpunkt
+          
+          # Länge/Distanz der Kante wird als Gewichtung gespeichert
+          self.gewichtung = berechneLänge(startpunkt, zielpunkt)
+     
+def berechneLänge(p1: Punkt, p2: Punkt):
+     return math.sqrt(
+          (p1.x - p2.x)**2
+           + 
+          (p1.y - p2.y)**2
+     )
 
 class EingabeFenster(Frame):
    
@@ -31,30 +52,25 @@ class EingabeFenster(Frame):
             command=self.starte)
         self.button_start.pack(side=BOTTOM, fill=BOTH)
         
-        # Daten
-        self.anzahl_straßen = None
-        self.startpunkt = None
-        self.zielpunkt = None
-        self.liste_verbindungen = None
-
     def starte(self):
         eingabe = self.textfeld.get('1.0', 'end').rsplit()
         print(eingabe)
         
         # Zuweisung der Klassenvariablen durch die eingegebenen Daten
-        self.anzahl_straßen = int(eingabe.pop(0))
-        self.startpunkt = self.zuPunkt(eingabe.pop(0))
-        self.zielpunkt = self.zuPunkt(eingabe.pop(0))
-        self.liste_verbindungen = []
-        for koordinaten in eingabe:
-            self.liste_verbindungen.append(
-                self.zuPunkt(koordinaten)
-            )
+        anzahl_straßen = int(eingabe.pop(0))
+        startpunkt = self.zuPunkt(eingabe.pop(0))
+        zielpunkt = self.zuPunkt(eingabe.pop(0))
+        liste_verbindungen = []
+        for verbindung in range(int(len(eingabe)/2)):
+             p1 = self.zuPunkt(eingabe.pop(0))
+             p2 = self.zuPunkt(eingabe.pop(0))
+             kante = Kante(p1, p2)
+             liste_verbindungen.append(kante)
         
-        print("\nAnzahl der Straßen: ", self.anzahl_straßen)
-        print("Startpunkt: ", self.startpunkt)
-        print("Zielpunkt: ", self.zielpunkt)
-        print("Liste Verbindungen ", self.liste_verbindungen)      
+        print("\nAnzahl der Straßen: ", anzahl_straßen)
+        print("Startpunkt: ", startpunkt)
+        print("Zielpunkt: ", zielpunkt)
+        print("Liste Verbindungen ", liste_verbindungen)      
         
         # Eingabefenster wird geschlossen
         self.destroy()
@@ -67,18 +83,15 @@ class EingabeFenster(Frame):
             startpunkt=self.startpunkt,
             zielpunkt=self.zielpunkt,
             liste_verbindungen=self.liste_verbindungen
-        )
+        )    
         
-        
-
     
-    def zuPunkt(self, eingabe):
-        """ verwertet die Eingabe zu einem Punkt der als Tuple aufgebaut ist
-        z.B.: '('0','0') wird zum Tuple (0,0) umgewandelt """    
-        return (
-            int(list(eingabe)[1]),
-            int(list(eingabe)[3])
-            )
+    def zuPunkt(self, eingabe) -> Punkt: 
+        """ verwertet die Eingabe zu einem Objekt der Klasse Punkt aufgebaut ist
+        z.B.: '('0','0')' """
+        x = int(list(eingabe)[1]),
+        y = int(list(eingabe)[3])
+        return Punkt(x, y)
         
 class ZeichenFenster(Canvas):
     
@@ -103,7 +116,18 @@ class ZeichenFenster(Canvas):
     def kreis(self, canvas, x, y, radius):
         id = canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill="red")
         return id
-        
+ 
+class Berechnungen():
+     def __init__(self, anzahl_straßen: int, startpunkt: Punkt, zielpunkt: Punkt, liste_verbindungen: list):
+        # Daten
+        self.anzahl_straßen = anzahl_straßen
+        self.startpunkt = startpunkt
+        self.zielpunkt = zielpunkt
+        self.liste_verbindungen = liste_verbindungen
+     
+     
+    
+                 
         
 
 

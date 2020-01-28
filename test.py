@@ -14,6 +14,13 @@ f = [zuPunkt(e[0])]
 
 print(f)
 
+    
+    
+class Punkt():
+     def __init__(self, x: int, y: int):
+          self.x = x
+      
+p1 = Punkt(1, 2)
+p2 = Punkt(3,2)
 
-for i in 10:
-    print(i)
+print(p1.x - p2.x)
