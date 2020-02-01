@@ -5,24 +5,42 @@ from tkinter import *
 import math
 
 class Punkt():
-     def __init__(self, x: int, y: int):
-          self.x = x
-          self.y = y
-     
+    def __init__(self, x: int, y: int):
+        self.x = x
+        self.y = y
+        self = (x, y)
+   
+    def __str__(self):
+        """ Ausgabe der Koordinaten eines Punktes """
+        return f"({self.x}/{self.y})"
+ 
+    
 class Kante():
-     def __init__(self, startpunkt: Punkt, zielpunkt: Punkt):
-          self.startpunkt = startpunkt
-          self.zielpunkt = zielpunkt
-          
-          # Länge/Distanz der Kante wird als Gewichtung gespeichert
-          self.gewichtung = berechneLänge(startpunkt, zielpunkt)
+    def __init__(self, startpunkt: Punkt, zielpunkt: Punkt):
+        self.startpunkt = startpunkt
+        self.zielpunkt = zielpunkt
+        
+        # Länge/Distanz der Kante wird als Gewichtung gespeichert
+        self.gewichtung = berechneLänge(startpunkt, zielpunkt)
+        
+        self = (startpunkt, zielpunkt)
+        
+    def __iter__(self):
+        """ implementierung der __iter__ - Methode, damit die Objekte von Kante iterierbar sind"""
+        return iter((self.startpunkt, self.zielpunkt))
+    
+    def __str__(self):
+        print("Hello \n\n")
+        return f"Startpunkt: {startpunkt}; Zielpunkt: {zielpunkt}\n"
+    
      
 def berechneLänge(p1: Punkt, p2: Punkt):
-     return math.sqrt(
-          (p1.x - p2.x)**2
-           + 
-          (p1.y - p2.y)**2
-     )
+    return math.sqrt(
+        (p1.x - p2.x)**2
+        + 
+        (p1.y - p2.y)**2
+    )
+
 
 class EingabeFenster(Frame):
    
@@ -92,7 +110,85 @@ class EingabeFenster(Frame):
         x = int(list(eingabe)[1]),
         y = int(list(eingabe)[3])
         return Punkt(x, y)
+     
+class Berechnungen():
+    def __init__(self, anzahl_straßen: int, startpunkt: Punkt, zielpunkt: Punkt, liste_verbindungen: list):
+        # Daten
+        self.anzahl_straßen = anzahl_straßen
+        self.startpunkt = startpunkt
+        self.zielpunkt = zielpunkt
+        self.liste_verbindungen = liste_verbindungen
+     
+    def berechneSteigungKante(kante: Kante):
+        """ berechnet die Steigung der eingegebenen Kante """
+        y_diff = kante.startpunkt.y - kante.zielpunkt.y
+        x_diff = kante.startpunkt.x - kante.zielpunkt.x
+        steigung = y_diff / x_diff
+        return steigung
+
+class Graph():
+    def __init__(self):
+        """ initialisiert einen Graph """
+        self.__graph_dict = {}
         
+    def Knoten(self):
+        """ gibt die Knoten des Graphen wieder"""
+        return list(self.__graph_dict.keys())
+    
+    def Kanten(self):
+        """ gibt die Kanten des Graphen wieder"""
+        return self.__generiereKanten()
+    
+    def addKnoten(self, knoten: Punkt):
+        """ fügt die eingebenen Punkt als Kante zum Graphen
+            brauch ich wahrscheinlich eh nicht xD
+        """
+        if knoten not in self.__graph_dict:
+            self.___graph_dict[knoten] = []
+        
+    
+    def addKante(self, kante: Kante):
+        """ fügt die eingebene Kante zum Graph"""
+        (knoten1, knoten2) = kante
+        if knoten1 in self.__graph_dict:
+            self.__graph_dict[knoten1].append(knoten2)
+        else:
+            self.__graph_dict[knoten1] = [knoten2]
+        
+    def __generiereKanten(self):
+        """ eine statische Methode die zum Erstellen der Kanten des Graphs, die in einer Liste zurückgegeben werden """ 
+        kanten = []
+        for knoten in self.__graph_dict:
+            for nachbar in self.__graph_dict[knoten]:
+                if (nachbar, knoten) not in kanten:
+                    kanten.append({knoten, nachbar})
+        return kanten
+    
+    def __str__(self):
+        res = "Knoten: "
+        # Knoten werden zum String hinzugefügt
+        for knoten in self.__graph_dict:
+            res += str(knoten) + " "
+            
+        res += "\nKanten: "
+        # Kanten werden zum String hinzugefügt
+        for kante in self.__generiereKanten():
+            res += str(kante) + " "
+        return res
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+   
 class ZeichenFenster(Canvas):
     
     def __init__(self, parent, *args, **kwargs):
@@ -116,15 +212,7 @@ class ZeichenFenster(Canvas):
     def kreis(self, canvas, x, y, radius):
         id = canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill="red")
         return id
- 
-class Berechnungen():
-     def __init__(self, anzahl_straßen: int, startpunkt: Punkt, zielpunkt: Punkt, liste_verbindungen: list):
-        # Daten
-        self.anzahl_straßen = anzahl_straßen
-        self.startpunkt = startpunkt
-        self.zielpunkt = zielpunkt
-        self.liste_verbindungen = liste_verbindungen
-     
+          
      
     
                  
