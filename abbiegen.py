@@ -13,8 +13,7 @@ class Punkt():
     def __str__(self):
         """ Ausgabe der Koordinaten eines Punktes """
         return f"({self.x}/{self.y})"
- 
-    
+   
 class Kante():
     def __init__(self, startpunkt: Punkt, zielpunkt: Punkt):
         self.startpunkt = startpunkt
@@ -29,9 +28,9 @@ class Kante():
         """ implementierung der __iter__ - Methode, damit die Objekte von Kante iterierbar sind"""
         return iter((self.startpunkt, self.zielpunkt))
     
-    def __str__(self):
-        print("Hello \n\n")
-        return f"Startpunkt: {startpunkt}; Zielpunkt: {zielpunkt}\n"
+#     def __str__(self):
+#         print("Hello \n\n")
+#         return f"Startpunkt: {startpunkt}; Zielpunkt: {zielpunkt}\n"
     
      
 def berechneLänge(p1: Punkt, p2: Punkt):
@@ -47,7 +46,9 @@ class EingabeFenster(Frame):
     def __init__(self, parent, *args, **kwargs):                
         Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
+        self.erstelleEingabeFenster()
 
+    def erstelleEingabeFenster(self):
         # Scrollbar
         self.scrollbar = Scrollbar(self)
         self.scrollbar.pack(side=RIGHT, fill=Y)
@@ -69,7 +70,7 @@ class EingabeFenster(Frame):
             text="Starte Berechnungen",
             command=self.starte)
         self.button_start.pack(side=BOTTOM, fill=BOTH)
-        
+     
     def starte(self):
         eingabe = self.textfeld.get('1.0', 'end').rsplit()
         print(eingabe)
@@ -93,15 +94,7 @@ class EingabeFenster(Frame):
         # Eingabefenster wird geschlossen
         self.destroy()
                 
-        # Zeichenfenster wird erstellt
-        # TODO: Zeichenfenster
-        e = ZeichenFenster(root, width=700, height=700)
-        e.pack(side="top", fill="both", expand=True)
-        e.zeichne(
-            startpunkt=self.startpunkt,
-            zielpunkt=self.zielpunkt,
-            liste_verbindungen=self.liste_verbindungen
-        )    
+            
         
     
     def zuPunkt(self, eingabe) -> Punkt: 
@@ -118,7 +111,18 @@ class Berechnungen():
         self.startpunkt = startpunkt
         self.zielpunkt = zielpunkt
         self.liste_verbindungen = liste_verbindungen
-     
+    
+    def zeichneStraßenkarte():
+        # Zeichenfenster wird erstellt
+        # TODO: Zeichenfenster
+        e = ZeichenFenster(root, width=700, height=700)
+        e.pack(side="top", fill="both", expand=True)
+        e.zeichne(
+            startpunkt=self.startpunkt,
+            zielpunkt=self.zielpunkt,
+            liste_verbindungen=self.liste_verbindungen
+        )
+    
     def berechneSteigungKante(kante: Kante):
         """ berechnet die Steigung der eingegebenen Kante """
         y_diff = kante.startpunkt.y - kante.zielpunkt.y
@@ -165,6 +169,7 @@ class Graph():
         return kanten
     
     def __str__(self):
+     
         res = "Knoten: "
         # Knoten werden zum String hinzugefügt
         for knoten in self.__graph_dict:
@@ -194,25 +199,37 @@ class ZeichenFenster(Canvas):
     def __init__(self, parent, *args, **kwargs):
         Canvas.__init__(self, parent, *args, **kwargs)
         self.parent = parent
-    
-    def zeichne(self, startpunkt:tuple, zielpunkt:tuple, liste_verbindungen: list):
-        # Koordinaten werden um diesen Faktor erweitert, damit sie auf der Zeichenfläche sichtbar sind
-        FACTOR = 100
-        RADIUS = 20
         
-        # Anfangspunkt
-        anfangspunkt = self.kreis(canvas=self, x=startpunkt[0]*FACTOR, y=startpunkt[1]*FACTOR, radius=RADIUS)
-        zielpunkt = self.kreis(canvas=self, x=zielpunkt[0]*FACTOR, y=zielpunkt[1]*FACTOR, radius=RADIUS)
-        for punkt in liste_verbindungen:
+        self.farbe_startpunkt = "red"
+        self.farbe_zielpunkt = "red"
+        self.farbe_knoten = "blue"
+        
+        # Koordinaten werden um diesen Faktor erweitert, damit sie auf der Zeichenfläche sichtbar sind
+        self.FACTOR = 100
+        self.RADIUS = 20
+    
+    def zeichne(self, startpunkt:tuple, zielpunkt:tuple, liste_punkte: list):
+               
+        # Startpunkt
+        startpunkt = self.kreis(canvas=self, x=startpunkt[0]*FACTOR, y=startpunkt[1]*FACTOR, radius=RADIUS, farbe=self.farbe_startpunkt)
+        zielpunkt = self.kreis(canvas=self, x=zielpunkt[0]*FACTOR, y=zielpunkt[1]*FACTOR, radius=RADIUS, farbe=self.farbe_zielpunkt)
+        for punkt in liste_punkte:
             self.kreis(canvas=self, x=punkt[0]*FACTOR, y=punkt[1]*FACTOR, radius=RADIUS)
         #TODO: diese punkte in liste_verbindungen sind ja die Punkte
         #TODO: Verbindungen zwischen den einzelnen Punkten machen
         #TODO: Speicherung in einem Graph vllt
 
-    def kreis(self, canvas, x, y, radius):
-        id = canvas.create_oval(x-radius, y-radius, x+radius, y+radius, fill="red")
+    def kreis(self, canvas, x, y, radius, farbe: str):
+        id = self.create_oval(x-radius, y-radius, x+radius, y+radius, fill=farbe)
         return id
-          
+    
+    def zeichne_linie(self, p1, p2, linien_dicke, farbe:str):
+        id = self.create_line(*p1, *p2, width=linien_dicke, fill=farbe)
+        return id
+    
+    
+
+    
      
     
                  

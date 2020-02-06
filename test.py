@@ -14,6 +14,7 @@ f = [zuPunkt(e[0])]
 
 print(f)
 
+
     
     
 class Punkt():
