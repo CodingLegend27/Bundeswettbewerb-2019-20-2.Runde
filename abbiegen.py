@@ -4,46 +4,52 @@
 from tkinter import *
 import math
 
+
 class Punkt():
     def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
         self = (x, y)
-   
+
     def __str__(self):
         """ Ausgabe der Koordinaten eines Punktes """
         return f"({self.x}/{self.y})"
-   
+    
+    def __iter__(self):
+        return (self.x, self.y)
+
+
 class Kante():
     def __init__(self, startpunkt: Punkt, zielpunkt: Punkt):
         self.startpunkt = startpunkt
         self.zielpunkt = zielpunkt
-        
+
         # Länge/Distanz der Kante wird als Gewichtung gespeichert
         self.gewichtung = berechneLänge(startpunkt, zielpunkt)
-        
+
         self = (startpunkt, zielpunkt)
-        
+
     def __iter__(self):
         """ implementierung der __iter__ - Methode, damit die Objekte von Kante iterierbar sind"""
         return iter((self.startpunkt, self.zielpunkt))
-    
+
 #     def __str__(self):
 #         print("Hello \n\n")
 #         return f"Startpunkt: {startpunkt}; Zielpunkt: {zielpunkt}\n"
-    
-     
+
+
 def berechneLänge(p1: Punkt, p2: Punkt):
+    # c² = a² + b² wird angewendet (Pythagoras)
     return math.sqrt(
         (p1.x - p2.x)**2
-        + 
+        +
         (p1.y - p2.y)**2
     )
 
 
 class EingabeFenster(Frame):
-   
-    def __init__(self, parent, *args, **kwargs):                
+
+    def __init__(self, parent, *args, **kwargs):
         Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.erstelleEingabeFenster()
@@ -70,49 +76,57 @@ class EingabeFenster(Frame):
             text="Starte Berechnungen",
             command=self.starte)
         self.button_start.pack(side=BOTTOM, fill=BOTH)
-     
+
     def starte(self):
+        # die Eingabe des Nutzers wird aus dem Textfenster gelesen
         eingabe = self.textfeld.get('1.0', 'end').rsplit()
-        print(eingabe)
-        
-        # Zuweisung der Klassenvariablen durch die eingegebenen Daten
-        anzahl_straßen = int(eingabe.pop(0))
-        startpunkt = self.zuPunkt(eingabe.pop(0))
-        zielpunkt = self.zuPunkt(eingabe.pop(0))
-        liste_verbindungen = []
-        for verbindung in range(int(len(eingabe)/2)):
-             p1 = self.zuPunkt(eingabe.pop(0))
-             p2 = self.zuPunkt(eingabe.pop(0))
-             kante = Kante(p1, p2)
-             liste_verbindungen.append(kante)
-        
-        print("\nAnzahl der Straßen: ", anzahl_straßen)
-        print("Startpunkt: ", startpunkt)
-        print("Zielpunkt: ", zielpunkt)
-        print("Liste Verbindungen ", liste_verbindungen)      
-        
+
         # Eingabefenster wird geschlossen
         self.destroy()
-                
-            
+
+        # Objekt der Klasse Berechnungen wird erzeugt
+        # --> Berechnungen mit der erhaltenen Eingabe werden durchgeführt
+        b = Berechnungen(eingabe)
+
         
-    
-    def zuPunkt(self, eingabe) -> Punkt: 
+
+
+class Berechnungen():
+    def __init__(self, eingabe: str):
+        # Zuweisung der Klassenvariablen durch die eingegebenen Daten
+        self.anzahl_straßen = int(eingabe.pop(0))
+        self.startpunkt = self.zuPunkt(eingabe.pop(0))
+        self.zielpunkt = self.zuPunkt(eingabe.pop(0))
+
+        self.liste_verbindungen = []
+        for verbindung in range(int(len(eingabe)/2)):
+            #p1 = self.zuPunkt(eingabe.pop(0))
+            p1 = self.zuPunkt(eingabe.pop(0))
+            p2 = self.zuPunkt(eingabe.pop(0))
+            kante = Kante(p1, p2)
+            self.liste_verbindungen.append(kante)
+
+        self.graph = Graph()
+        
+        for verbindung in self.liste_verbindungen:
+            self.graph.addKante(verbindung)
+            
+        self.liste_punkte = self.graph.Knoten()
+            
+        self.zeichneStraßenkarte()
+
+    def zuPunkt(self, eingabe) -> Punkt:
         """ verwertet die Eingabe zu einem Objekt der Klasse Punkt aufgebaut ist
         z.B.: '('0','0')' """
-        x = int(list(eingabe)[1]),
+        x = int(list(eingabe)[1])
+        # print(list(eingabe))
+        # print(list(eingabe)[0])
+        # print("test", list(eingabe)[1])
+        # print("x " ,x)
         y = int(list(eingabe)[3])
         return Punkt(x, y)
-     
-class Berechnungen():
-    def __init__(self, anzahl_straßen: int, startpunkt: Punkt, zielpunkt: Punkt, liste_verbindungen: list):
-        # Daten
-        self.anzahl_straßen = anzahl_straßen
-        self.startpunkt = startpunkt
-        self.zielpunkt = zielpunkt
-        self.liste_verbindungen = liste_verbindungen
-    
-    def zeichneStraßenkarte():
+
+    def zeichneStraßenkarte(self):
         # Zeichenfenster wird erstellt
         # TODO: Zeichenfenster
         e = ZeichenFenster(root, width=700, height=700)
@@ -120,37 +134,38 @@ class Berechnungen():
         e.zeichne(
             startpunkt=self.startpunkt,
             zielpunkt=self.zielpunkt,
-            liste_verbindungen=self.liste_verbindungen
+            liste_punkte = self.liste_punkte,
+            liste_verbindungen=self.liste_verbindungen,
         )
-    
-    def berechneSteigungKante(kante: Kante):
+
+    def berechneSteigungKante(self, kante: Kante):
         """ berechnet die Steigung der eingegebenen Kante """
         y_diff = kante.startpunkt.y - kante.zielpunkt.y
         x_diff = kante.startpunkt.x - kante.zielpunkt.x
         steigung = y_diff / x_diff
         return steigung
 
+
 class Graph():
     def __init__(self):
         """ initialisiert einen Graph """
         self.__graph_dict = {}
-        
+
     def Knoten(self):
         """ gibt die Knoten des Graphen wieder"""
         return list(self.__graph_dict.keys())
-    
+
     def Kanten(self):
         """ gibt die Kanten des Graphen wieder"""
         return self.__generiereKanten()
-    
+
     def addKnoten(self, knoten: Punkt):
         """ fügt die eingebenen Punkt als Kante zum Graphen
             brauch ich wahrscheinlich eh nicht xD
         """
         if knoten not in self.__graph_dict:
             self.___graph_dict[knoten] = []
-        
-    
+
     def addKante(self, kante: Kante):
         """ fügt die eingebene Kante zum Graph"""
         (knoten1, knoten2) = kante
@@ -158,130 +173,98 @@ class Graph():
             self.__graph_dict[knoten1].append(knoten2)
         else:
             self.__graph_dict[knoten1] = [knoten2]
-        
+
     def __generiereKanten(self):
-        """ eine statische Methode die zum Erstellen der Kanten des Graphs, die in einer Liste zurückgegeben werden """ 
+        """ eine statische Methode die zum Erstellen der Kanten des Graphs, die in einer Liste zurückgegeben werden """
         kanten = []
         for knoten in self.__graph_dict:
             for nachbar in self.__graph_dict[knoten]:
                 if (nachbar, knoten) not in kanten:
                     kanten.append({knoten, nachbar})
         return kanten
-    
+
     def __str__(self):
-     
+
         res = "Knoten: "
         # Knoten werden zum String hinzugefügt
         for knoten in self.__graph_dict:
             res += str(knoten) + " "
-            
+
         res += "\nKanten: "
         # Kanten werden zum String hinzugefügt
         for kante in self.__generiereKanten():
             res += str(kante) + " "
         return res
-    
-    
 
 
-
-
-
-
-
-
-
-
-
-   
 class ZeichenFenster(Canvas):
-    
+
     def __init__(self, parent, *args, **kwargs):
         Canvas.__init__(self, parent, *args, **kwargs)
         self.parent = parent
-        
+
         self.farbe_startpunkt = "red"
         self.farbe_zielpunkt = "red"
         self.farbe_knoten = "blue"
-        
+
         # Koordinaten werden um diesen Faktor erweitert, damit sie auf der Zeichenfläche sichtbar sind
-        self.FACTOR = 100
-        self.RADIUS = 20
-    
-    def zeichne(self, startpunkt:tuple, zielpunkt:tuple, liste_punkte: list):
-               
-        # Startpunkt
-        startpunkt = self.kreis(canvas=self, x=startpunkt[0]*FACTOR, y=startpunkt[1]*FACTOR, radius=RADIUS, farbe=self.farbe_startpunkt)
-        zielpunkt = self.kreis(canvas=self, x=zielpunkt[0]*FACTOR, y=zielpunkt[1]*FACTOR, radius=RADIUS, farbe=self.farbe_zielpunkt)
-        for punkt in liste_punkte:
-            self.kreis(canvas=self, x=punkt[0]*FACTOR, y=punkt[1]*FACTOR, radius=RADIUS)
-        #TODO: diese punkte in liste_verbindungen sind ja die Punkte
-        #TODO: Verbindungen zwischen den einzelnen Punkten machen
-        #TODO: Speicherung in einem Graph vllt
+        self.faktor = 100
+        self.radius_normaler_kreis = 20
+        self.radius_besonderer_kreis = 25
 
-    def kreis(self, canvas, x, y, radius, farbe: str):
-        id = self.create_oval(x-radius, y-radius, x+radius, y+radius, fill=farbe)
-        return id
-    
-    def zeichne_linie(self, p1, p2, linien_dicke, farbe:str):
-        id = self.create_line(*p1, *p2, width=linien_dicke, fill=farbe)
-        return id
-    
-    
-
-    
-     
-    
-                 
+        self.farbe_besonderer_kreis = "green"
+        self.farbe_normaler_kreis = "blue"
         
+        self.linien_dicke = 20
+        self.farbe_linien = "black"
+
+    def zeichne(self, startpunkt: tuple, zielpunkt: tuple, liste_punkte: list, liste_verbindungen: list):
+
+        # Startpunkt
+        startpunkt = self.zeichne_besonderen_kreis(
+            x=startpunkt.x, y=startpunkt.y)
+        zielpunkt = self.zeichne_besonderen_kreis(x=zielpunkt.x, y=zielpunkt.y)
+        for punkt in liste_punkte:
+            self.zeichne_normalen_kreis(x=punkt.x, y=punkt.y)
+        for kante in liste_verbindungen:
+            self.zeichne_linie(kante.startpunkt, kante.zielpunkt)
+        # for verbindung in:
+        #     self.zeichne_linie()
+        # TODO: diese punkte in liste_verbindungen sind ja die Punkte
+        # TODO: Verbindungen zwischen den einzelnen Punkten machen
+        # TODO: Speicherung in einem Graph vllt
+
+    def zeichne_normalen_kreis(self, x: int, y: int):
+        x *= self.faktor
+        y *= self.faktor
+        id = self.create_oval(x-self.radius_normaler_kreis, y-self.radius_normaler_kreis, x +
+                              self.radius_normaler_kreis, y+self.radius_normaler_kreis, fill=self.farbe_normaler_kreis)
+        return id
+
+    def zeichne_besonderen_kreis(self, x: int, y: int):
+        x *= self.faktor
+        y *= self.faktor
+        id = self.create_oval(x-self.radius_besonderer_kreis,
+                              y-self.radius_besonderer_kreis, x +
+                              self.radius_besonderer_kreis, y+self.radius_besonderer_kreis, fill=self.farbe_besonderer_kreis)
+
+    def zeichne_linie(self, p1, p2):
+        x1 = p1.x * self.faktor
+        y1 = p1.y * self.faktor
+        x2 = p2.x * self.faktor
+        y2 = p2.y * self.faktor
+        id = self.create_line(x1, y1, x2, y2, width=self.linien_dicke, fill=self.farbe_linien)
+        return id
 
 
 if __name__ == "__main__":
     root = Tk()
     EingabeFenster(root).pack(side="top", fill="both", expand=True)
-    root.mainloop()    
+    root.mainloop()
 
 
+# class Berechnungen:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#class Berechnungen:
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
 """
 class StartFenster(QWidget):
@@ -308,5 +291,4 @@ class StartFenster(QWidget):
             layout.addWidget(self.text)
             layout.addWidget(self.view)
             self.setWindowTitle("Karte mit Weg")
-   """         
-            
+   """
