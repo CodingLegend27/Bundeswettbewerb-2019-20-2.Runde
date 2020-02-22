@@ -3,6 +3,8 @@
 # from PySide2.QtWidgets import *
 from tkinter import *
 import math
+import matplotlib as mlp
+import matplotlib.pyplot as plt
 
 
 class Punkt():
@@ -12,9 +14,9 @@ class Punkt():
         self = (x, y)
 
     def __str__(self):
-        """ Ausgabe der Koordinaten eines Punktes """
+        """Ausgabe der Koordinaten eines Punktes."""
         return f"({self.x}/{self.y})"
-    
+
     def __iter__(self):
         return (self.x, self.y)
 
@@ -88,8 +90,6 @@ class EingabeFenster(Frame):
         # --> Berechnungen mit der erhaltenen Eingabe werden durchgeführt
         b = Berechnungen(eingabe)
 
-        
-
 
 class Berechnungen():
     def __init__(self, eingabe: str):
@@ -107,12 +107,12 @@ class Berechnungen():
             self.liste_verbindungen.append(kante)
 
         self.graph = Graph()
-        
+
         for verbindung in self.liste_verbindungen:
             self.graph.addKante(verbindung)
-            
+
         self.liste_punkte = self.graph.Knoten()
-            
+
         self.zeichneStraßenkarte()
 
     def zuPunkt(self, eingabe) -> Punkt:
@@ -134,12 +134,21 @@ class Berechnungen():
         e.zeichne(
             startpunkt=self.startpunkt,
             zielpunkt=self.zielpunkt,
-            liste_punkte = self.liste_punkte,
+            liste_punkte=self.liste_punkte,
             liste_verbindungen=self.liste_verbindungen,
         )
 
+        #neu
+        
+        k = Koordinatensystem()
+        k.zeichneStraßenkarte(
+            startpunkt=self.startpunkt,
+            zielpunkt=self.zielpunkt,
+            liste_punkte=self.liste_punkte,
+            liste_verbindungen=self.liste_verbindungen)
+
     def berechneSteigungKante(self, kante: Kante):
-        """ berechnet die Steigung der eingegebenen Kante """
+        """berechnet die Steigung der eingegebenen Kante."""
         y_diff = kante.startpunkt.y - kante.zielpunkt.y
         x_diff = kante.startpunkt.x - kante.zielpunkt.x
         steigung = y_diff / x_diff
@@ -148,39 +157,48 @@ class Berechnungen():
 
 class Graph():
     def __init__(self):
-        """ initialisiert einen Graph """
+        """initialisiert einen Graph."""
         self.__graph_dict = {}
 
     def Knoten(self):
-        """ gibt die Knoten des Graphen wieder"""
-        return list(self.__graph_dict.keys())
+        """gibt die Knoten des Graphen wieder."""
+        # TODO: Das hier ist leider falsch
+        # ich brauch nicht nur die Keys also Schl�ssel, sondern auch was hinter den Schl�sseln steht
+        knoten = []
+        keys = list(self.__graph_dict.keys())
+        for key in keys:
+            knoten.extend(self.__graph_dict[key])
+        
+        keys = list(set(keys))
+        return knoten
+        
 
     def Kanten(self):
-        """ gibt die Kanten des Graphen wieder"""
+        """gibt die Kanten des Graphen wieder."""
         return self.__generiereKanten()
 
     def addKnoten(self, knoten: Punkt):
-        """ fügt die eingebenen Punkt als Kante zum Graphen
-            brauch ich wahrscheinlich eh nicht xD
-        """
+        """f�gt die eingebenen Punkt als Kante zum Graphen brauch ich
+        wahrscheinlich eh nicht xD."""
         if knoten not in self.__graph_dict:
             self.___graph_dict[knoten] = []
 
     def addKante(self, kante: Kante):
-        """ fügt die eingebene Kante zum Graph"""
+        """f�gt die eingebene Kante zum Graph."""
         (knoten1, knoten2) = kante
         if knoten1 in self.__graph_dict:
             self.__graph_dict[knoten1].append(knoten2)
-        else:
             self.__graph_dict[knoten1] = [knoten2]
 
     def __generiereKanten(self):
-        """ eine statische Methode die zum Erstellen der Kanten des Graphs, die in einer Liste zurückgegeben werden """
+        """eine statische Methode die zum Erstellen der Kanten des Graphs, die
+        in einer Liste zur�ckgegeben werden."""
         kanten = []
         for knoten in self.__graph_dict:
             for nachbar in self.__graph_dict[knoten]:
-                if (nachbar, knoten) not in kanten:
-                    kanten.append({knoten, nachbar})
+                for nachbar in self.__graph_dict[knoten]:
+                    if (nachbar, knoten) not in kanten:
+                        kanten.append({knoten, nachbar})
         return kanten
 
     def __str__(self):
@@ -214,12 +232,11 @@ class ZeichenFenster(Canvas):
 
         self.farbe_besonderer_kreis = "green"
         self.farbe_normaler_kreis = "blue"
-        
-        self.linien_dicke = 20
+
+        self.linien_dicke = 10
         self.farbe_linien = "black"
 
     def zeichne(self, startpunkt: tuple, zielpunkt: tuple, liste_punkte: list, liste_verbindungen: list):
-
         # Startpunkt
         startpunkt = self.zeichne_besonderen_kreis(
             x=startpunkt.x, y=startpunkt.y)
@@ -253,8 +270,54 @@ class ZeichenFenster(Canvas):
         y1 = p1.y * self.faktor
         x2 = p2.x * self.faktor
         y2 = p2.y * self.faktor
-        id = self.create_line(x1, y1, x2, y2, width=self.linien_dicke, fill=self.farbe_linien)
+        id = self.create_line(
+            x1, y1, x2, y2, width=self.linien_dicke, fill=self.farbe_linien)
         return id
+
+
+class Koordinatensystem():
+    def __init__(self):
+        plt.ylabel("y-Achse")
+        plt.xlabel("x-Achse")
+        plt.grid(True)
+
+    def zeichneStraßenkarte(self, startpunkt: Punkt, zielpunkt: Punkt, liste_punkte: list, liste_verbindungen: list):
+       
+        # for verbindung in liste_verbindungen:
+        #     plt.plot(
+        #         (verbindung.startpunkt.x,verbindung.zielpunkt.x),
+        #         (verbindung.startpunkt.y, verbindung.zielpunkt.y),
+        #         'k-',
+        #         #label='Straßen'
+                    
+        #             )
+        # neu
+        # Start- und Zielpunkt von der Liste aller Punkten entfernen
+        #liste_punkte.
+        #liste_punkte.remove(zielpunkt)
+        # liste_punkte.append(Punkt(4,4))
+        # liste_punkte.remove()
+        
+        x_koord_punkte = []
+        y_koord_punkte = []
+        for punkt in liste_punkte:
+            x_koord_punkte.append(punkt.x)
+            y_koord_punkte.append(punkt.y)
+            print("Punkt ", punkt.x, punkt.y)
+        plt.plot(x_koord_punkte, y_koord_punkte, 'ko', label='Kreuzungen')
+
+        # Startpunkt wird rot dargestellt
+        plt.plot(startpunkt.x, startpunkt.y, 'ro', label='Startpunkt')
+        # Zielpunkt wird grün dargestellt
+        plt.plot(zielpunkt.x, zielpunkt.y, 'go', label='Zielpunkt')
+
+       
+        
+        
+        
+        plt.legend(loc='upper left', frameon=True)
+        plt.show()
+        pass
 
 
 if __name__ == "__main__":
