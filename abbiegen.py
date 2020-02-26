@@ -231,8 +231,13 @@ class Berechnungen():
         # Rückgabewert: die Anzahl der Abbiegevorgänge im gegebenen Pfad
         return anzahl_abbiegen
 
-    def berechneKürzestenWeg(self):
-        """ berechnet den Pfad des Graphen self.graph vom Startpunkt self.startpunkt zum Zielpunkt self.zielpunkt """
+    def berechneEigenschaftenPfade(self):
+        """ Berechnet für jeden Pfad die Länge und die Anzahl der Abbiegevorgänge und speichert diese in einem Dictionary
+            --> der erste Wert ist die Länge des Pfads, der zweite Wert die Anzahl der Abbiegungen
+        """
+        anzahl_pfade = len(self.alle_pfade)
+        eigenschaften_pfade = {self.alle_pfade}
+
         pass
 
     def berechneAllePfade(self, startpunkt, zielpunkt, graph: dict, aktuellerPfad, besucht, fertig):
