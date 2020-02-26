@@ -1,27 +1,34 @@
-e = ['(0,0)', '(1,1)']
+from abbiegen import Berechnungen
 
-e.pop(0)
-def zuPunkt(eingabe):
-    """ verwertet die Eingabe zu einem Punkt der als Tuple aufgebaut ist
-        z.B.: '('0','0') wird zum Tuple (0,0) umgewandelt """    
-    print(eingabe)
-    return (
-        int(list(eingabe)[1]),
-        int(list(eingabe)[3])
-        )
+verbindungen = [
+    ((1, 1), (2, 4)),
+    ((2, 4), (3, 2)),
+    ((3, 2), (4, 0)),
+    ((4, 0), (1, 1))
+]
+eingabe="""
+14
+(0,0)
+(4,3)
+(0,0) (0,1)
+(0,1) (0,2)
+(0,2) (0,3)
+(0,1) (1,1)
+(0,2) (1,1)
+(0,2) (1,3)
+(0,3) (1,3)
+(1,1) (2,2)
+(1,3) (2,2)
+(1,3) (2,3)
+(2,2) (2,3)
+(2,2) (3,3)
+(2,3) (3,3)
+(3,3) (4,3)
+""".rsplit()
 
-f = [zuPunkt(e[0])]
+b = Berechnungen(eingabe)
 
-print(f)
+anzahl = b.berechneAnzahlAbbiegenPfad(verbindungen)
 
+print(anzahl)
 
-    
-    
-class Punkt():
-     def __init__(self, x: int, y: int):
-          self.x = x
-      
-p1 = Punkt(1, 2)
-p2 = Punkt(3,2)
-
-print(p1.x - p2.x)

@@ -5,50 +5,47 @@ from tkinter import *
 import math
 import matplotlib as mlp
 import matplotlib.pyplot as plt
-import collections
-import numpy as np
-import matplotlib.ticker as plticker
 
 
-# class Punkt():
-#     def __init__(self, x: int, y: int):
-#         self.x = x
-#         self.y = y
-#         self = (x, y)
+class Punkt():
+    def __init__(self, x: int, y: int):
+        self.x = x
+        self.y = y
+        self = (x, y)
 
-#     def __str__(self):
-#         """Ausgabe der Koordinaten eines Punktes."""
-#         return f"({self.x}/{self.y})"
+    def __str__(self):
+        """Ausgabe der Koordinaten eines Punktes."""
+        return f"({self.x}/{self.y})"
 
-#     def __iter__(self):
-#         return iter(self.x, self.y)
+    def __iter__(self):
+        return iter(self.x, self.y)
 
 
-# class Kante():
-#     def __init__(self, startpunkt: Punkt, zielpunkt: Punkt):
-#         self.startpunkt = startpunkt
-#         self.zielpunkt = zielpunkt
+class Kante():
+    def __init__(self, startpunkt: Punkt, zielpunkt: Punkt):
+        self.startpunkt = startpunkt
+        self.zielpunkt = zielpunkt
 
-#         # Länge/Distanz der Kante wird als Gewichtung gespeichert
-#         self.gewichtung = berechneLänge(startpunkt, zielpunkt)
+        # Länge/Distanz der Kante wird als Gewichtung gespeichert
+        self.gewichtung = berechneLänge(startpunkt, zielpunkt)
 
-#         self = (startpunkt, zielpunkt)
+        self = (startpunkt, zielpunkt)
 
-#     def __iter__(self):
-#         """ implementierung der __iter__ - Methode, damit die Objekte von Kante iterierbar sind"""
-#         return iter((self.startpunkt, self.zielpunkt))
+    def __iter__(self):
+        """ implementierung der __iter__ - Methode, damit die Objekte von Kante iterierbar sind"""
+        return iter((self.startpunkt, self.zielpunkt))
 
 #     def __str__(self):
 #         print("Hello \n\n")
 #         return f"Startpunkt: {startpunkt}; Zielpunkt: {zielpunkt}\n"
 
 
-def berechneLänge(p1: tuple, p2: tuple):
+def berechneLänge(p1: Punkt, p2: Punkt):
     # c² = a² + b² wird angewendet (Pythagoras)
     return math.sqrt(
-        (p1[0] - p2[0])**2
+        (p1.x - p2.x)**2
         +
-        (p1[1] - p2[1])**2
+        (p1.y - p2.y)**2
     )
 
 
@@ -58,9 +55,6 @@ class EingabeFenster(Frame):
         Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.erstelleEingabeFenster()
-
-        # TODO für Test
-        # self.starte()
 
     def erstelleEingabeFenster(self):
         # Scrollbar
@@ -94,34 +88,34 @@ class EingabeFenster(Frame):
 
         # Objekt der Klasse Berechnungen wird erzeugt
         # --> Berechnungen mit der erhaltenen Eingabe werden durchgeführt
-
-        # # Für Testzwecke
-        # eingabe = """
-        # 14
-        # (0,0)
-        # (4,3)
-        # (0,0) (0,1)
-        # (0,1) (0,2)
-        # (0,2) (0,3)
-        # (0,1) (1,1)
-        # (0,2) (1,1)
-        # (0,2) (1,3)
-        # (0,3) (1,3)
-        # (1,1) (2,2)
-        # (1,3) (2,2)
-        # (1,3) (2,3)
-        # (2,2) (2,3)
-        # (2,2) (3,3)
-        # (2,3) (3,3)
-        # (3,3) (4,3)
-        # """.rsplit()
-        # b = Berechnungen(eingabe)
-        # ansonsten
+        
+        # Für Testzwecke
+        eingabe = """
+        14
+        (0,0)
+        (4,3)
+        (0,0) (0,1)
+        (0,1) (0,2)
+        (0,2) (0,3)
+        (0,1) (1,1)
+        (0,2) (1,1)
+        (0,2) (1,3)
+        (0,3) (1,3)
+        (1,1) (2,2)
+        (1,3) (2,2)
+        (1,3) (2,3)
+        (2,2) (2,3)
+        (2,2) (3,3)
+        (2,3) (3,3)
+        (3,3) (4,3)
+        """.rsplit()
         b = Berechnungen(eingabe)
+        # ansonsten
+        #b = Berechnungen(eingabe)
 
 
 class Berechnungen():
-    def __init__(self, eingabe: list):
+    def __init__(self, eingabe: str):
         # Zuweisung der Klassenvariablen durch die eingegebenen Daten
         self.anzahl_straßen = int(eingabe.pop(0))
         self.startpunkt = self.zuPunkt(eingabe.pop(0))
@@ -132,7 +126,7 @@ class Berechnungen():
             #p1 = self.zuPunkt(eingabe.pop(0))
             p1 = self.zuPunkt(eingabe.pop(0))
             p2 = self.zuPunkt(eingabe.pop(0))
-            kante = (p1, p2)
+            kante = Kante(p1, p2)
             self.liste_verbindungen.append(kante)
 
         self.graph = Graph()
@@ -141,32 +135,20 @@ class Berechnungen():
             self.graph.addKante(verbindung)
 
         self.liste_punkte = self.graph.Knoten()
-        self.dictionary = self.graph.Dictionary()
 
         self.zeichneStraßenkarte()
 
-        print("hello")
-
-        # zu dieser Liste werden alle Pfade hinzugefügt
-        self.alle_pfade = []
-        self.berechneAllePfade(self.startpunkt, self.zielpunkt,self.graph.Dictionary(), [], [], [])
-
-
-        print(self.alle_pfade)
-
-        
-
-    def zuPunkt(self, eingabe: str):
+    def zuPunkt(self, eingabe):
         """ verwertet die Eingabe zu einem Objekt der Klasse Punkt aufgebaut ist
-        z.B.: '(14,0)'
-        --> gibt einen Punkt als Tuple zurück"""
-        # zuerst wird die Stelle des Kommas bestimmt
-        ind_komma = eingabe.find(',')
-        # die x-Koordinate wird durch die Ziffern bis zum Komma dargestellt
-        x = int(eingabe[1: ind_komma])
-        # die y-Koordinate wird durch die Ziffer vom Komma bis zum Ende dargestellt
-        y = int(eingabe[ind_komma+1: -1])
-        return (x, y)
+        z.B.: '('0','0')' 
+        gibt einen Punkt zurück"""
+        x = int(list(eingabe)[1])
+        # print(list(eingabe))
+        # print(list(eingabe)[0])
+        # print("test", list(eingabe)[1])
+        # print("x " ,x)
+        y = int(list(eingabe)[3])
+        return Punkt(x, y)
 
     def zeichneStraßenkarte(self):
         # Zeichenfenster wird erstellt
@@ -182,100 +164,29 @@ class Berechnungen():
 
         # neu
         # eine neues Koordinatensystem wird erstellt, indem die Straßenkarte gezeichnet wird
-        self.k = Koordinatensystem()
-        self.k.zeichneStraßenkarte(
+        k = Koordinatensystem()
+        k.zeichneStraßenkarte(
             startpunkt=self.startpunkt,
             zielpunkt=self.zielpunkt,
             liste_punkte=self.liste_punkte,
             liste_verbindungen=self.liste_verbindungen)
 
-    def berechneSteigungKante(self, kante: tuple):
+    def berechneSteigungKante(self, kante: Kante):
         """berechnet die Steigung der eingegebenen Kante."""
-        # Differenz der y-Koordinaten des Start- und Zielpunktes der gegebenen Kante
-        y_diff = kante[0][1] - kante[1][1]
-
-        # Differenz der x-Koordinaten des Start- und Zielpunktes der gegebenen Kante
-        x_diff = kante[0][0] - kante[1][0]
+        y_diff = kante.startpunkt.y - kante.zielpunkt.y
+        x_diff = kante.startpunkt.x - kante.zielpunkt.x
         steigung = y_diff / x_diff
         return steigung
 
-    def berechneAnzahlAbbiegenPfad(self, liste_verbindungen: list):
-        """ Berechnung der Anzahl, wie häufig auf dem gegebenen Pfad (Liste der Verbindungen = Parameter) abgebogen werden muss
-        """
-        # Liste mit allen Steigungen der gegebenen Strecken wird erstellt
-        steigungen = []
-        # dabei wird die Methode berechneSteigungKante(tuple) aufgerufen
-        for verbindung in liste_verbindungen:
-            steigungen.append(self.berechneSteigungKante(verbindung))
-
-        # die Anzahl der Abbiegevorgänge beträgt zu Beginn 0
-        anzahl_abbiegen = 0
-        # TODO kommentare
-        for i in range(len(steigungen)):
-            # die Steigung der akutellen Strecke wird zugewiesen
-            aktuell = steigungen[i]
-            # falls es Strecke vor der aktuellen Strecke gibt
-            if i > 0:
-                # die Steigung der Strecke vor der aktuellen Strecke wird zugewiesen
-                zuvor = steigungen[i-1]
-                # wenn die beiden zugewiesenen Steigungen unterschiedlich sind,
-                # wird der Zähler erhöht
-                if aktuell != zuvor:
-                    anzahl_abbiegen += 1
-
-        # while steigungen:
-        #     aktuell = steigungen[-1]
-        #     zuvor = next(aktuell, None)
-        #     if aktuell != zuvor:
-        #         anzahl_abbiegen +=1
-        # Rückgabewert: die Anzahl der Abbiegevorgänge im gegebenen Pfad
-        return anzahl_abbiegen
-
-    def berechneKürzestenWeg(self):
-        """ berechnet den Pfad des Graphen self.graph vom Startpunkt self.startpunkt zum Zielpunkt self.zielpunkt """
-        pass
-
-    def berechneAllePfade(self, startpunkt, zielpunkt, graph: dict, aktuellerPfad, besucht, fertig):
-        """ Berechnung aller Pfade im Graph self.graph vom gegebenen Startpunkt zum gegebenen Zielpunkt
-            Es wird davon ausgegangen, dass vom Startpunkt aus der Zielpunkt mindestens über einen Pfad erreichbar ist, da sonst die Aufgabenstellung nicht viel Sinn machen würde
-        """
-        besucht.append(startpunkt)
-        aktuellerPfad.append(startpunkt)
-
-        # falls der Startpunkt und der Zielpunkt identisch sind,
-        # werden alle Pfade zusammen mit dem akutellen Pfad ausgegeben
-        if startpunkt == zielpunkt:
-            #aktuellerPfad.append(zielpunkt)
-            
-            print("akuteller pfad fertig: ", aktuellerPfad)
-            # self.k.zeichneWeg(aktuellerPfad, 'g-')
-            self.alle_pfade.append(aktuellerPfad)
-            
-
-        else:
-            if startpunkt in graph.keys():
-                for i in graph[startpunkt]:
-                    if i not in besucht:
-                        self.berechneAllePfade(
-                                i, zielpunkt, graph, aktuellerPfad, besucht, fertig)
-        
-        aktuellerPfad.pop()
-        besucht.remove(startpunkt)
-
-
-
-# TODO Verfahren mit Breitensuche und Backtracking (Recherchieren!)
+# TODO: keine umständliche Speicherung in Punkt und Kante mit eigenen Klassen sondern in für Punkt auf alle Fälle in (x,y)
+# Kante-klasse wird vllt gar nicht benötigt
+# Verfahren mit Breitensuche und Backtracking (Recherchieren!)
 
 
 class Graph():
     def __init__(self):
         """initialisiert einen Graph."""
         self.__graph_dict = {}
-
-    def Dictionary(self):
-        print(self.__graph_dict)
-        print(self.Knoten())
-        return self.__graph_dict
 
     def Knoten(self):
         """gibt die Knoten des Graphen wieder."""
@@ -292,17 +203,16 @@ class Graph():
         """gibt die Kanten des Graphen wieder."""
         return self.__generiereKanten()
 
-    def addKnoten(self, knoten: tuple):
+    def addKnoten(self, knoten: Punkt):
         """fügt die eingebenen Punkt als Kante zum Graphen brauch ich"""
         if knoten not in self.__graph_dict:
             self.__graph_dict[knoten] = []
 
-    def addKante(self, kante: tuple):
+    def addKante(self, kante: Kante):
         """fügt die eingebene Kante zum Graph."""
-        knoten1, knoten2 = kante
+        (knoten1, knoten2) = kante
         if knoten1 in self.__graph_dict:
             self.__graph_dict[knoten1].append(knoten2)
-        else:
             self.__graph_dict[knoten1] = [knoten2]
 
     def __generiereKanten(self):
@@ -354,15 +264,14 @@ class ZeichenFenster(Canvas):
     def zeichne(self, startpunkt: tuple, zielpunkt: tuple, liste_punkte: list, liste_verbindungen: list):
         # Startpunkt
         startpunkt = self.zeichne_besonderen_kreis(
-            x=startpunkt[0], y=startpunkt[1])
-        zielpunkt = self.zeichne_besonderen_kreis(
-            x=zielpunkt[0], y=zielpunkt[0])
+            x=startpunkt.x, y=startpunkt.y)
+        zielpunkt = self.zeichne_besonderen_kreis(x=zielpunkt.x, y=zielpunkt.y)
 
         for punkt in liste_punkte:
-            self.zeichne_normalen_kreis(x=punkt[0], y=punkt[1])
+            self.zeichne_normalen_kreis(x=punkt.x, y=punkt.y)
 
         for kante in liste_verbindungen:
-            self.zeichne_linie(kante[0], kante[1])
+            self.zeichne_linie(kante.startpunkt, kante.zielpunkt)
 
         # for verbindung in:
         #     self.zeichne_linie()
@@ -385,11 +294,11 @@ class ZeichenFenster(Canvas):
                               self.radius_besonderer_kreis, y+self.radius_besonderer_kreis, fill=self.farbe_besonderer_kreis)
         return id
 
-    def zeichne_linie(self, p1: tuple, p2: tuple):
-        x1 = p1[0] * self.faktor
-        y1 = p1[1] * self.faktor
-        x2 = p2[0] * self.faktor
-        y2 = p2[1] * self.faktor
+    def zeichne_linie(self, p1: Punkt, p2: Punkt):
+        x1 = p1.x * self.faktor
+        y1 = p1.y * self.faktor
+        x2 = p2.x * self.faktor
+        y2 = p2.y * self.faktor
         id = self.create_line(
             x1, y1, x2, y2, width=self.linien_dicke, fill=self.farbe_linien)
         return id
@@ -400,11 +309,8 @@ class Koordinatensystem():
         plt.ylabel("y-Achse")
         plt.xlabel("x-Achse")
         plt.grid(True)
-        fig, ax = plt.subplots()
-        loc = plticker.MultipleLocator(base=1.0)
-        ax.xaxis.set_major_locator(loc)
 
-    def zeichneStraßenkarte(self, startpunkt: tuple, zielpunkt: tuple, liste_punkte: list, liste_verbindungen: list):
+    def zeichneStraßenkarte(self, startpunkt: Punkt, zielpunkt: Punkt, liste_punkte: list, liste_verbindungen: list):
 
         # der Weg wird mit einer schwarzen Linie gezeichnet
         self.zeichneWeg(liste_verbindungen, 'k-')
@@ -419,30 +325,25 @@ class Koordinatensystem():
         x_koord_punkte = []
         y_koord_punkte = []
         for punkt in liste_punkte:
-            x_koord_punkte.append(punkt[0])
-            y_koord_punkte.append(punkt[1])
-            print("Punkt ", punkt[0], punkt[1])
+            x_koord_punkte.append(punkt.x)
+            y_koord_punkte.append(punkt.y)
+            print("Punkt ", punkt.x, punkt.y)
         plt.plot(x_koord_punkte, y_koord_punkte, 'ko', label='Kreuzungen')
 
         # Startpunkt wird rot dargestellt
-        plt.plot(startpunkt[0], startpunkt[1], 'ro', label='Startpunkt')
+        plt.plot(startpunkt.x, startpunkt.y, 'ro', label='Startpunkt')
         # Zielpunkt wird grün dargestellt
-        plt.plot(zielpunkt[0], zielpunkt[1], 'go', label='Zielpunkt')
+        plt.plot(zielpunkt.x, zielpunkt.y, 'go', label='Zielpunkt')
 
         plt.legend(loc='upper left', frameon=True)
         plt.show()
-        
+        pass
 
     def zeichneWeg(self, liste_verbindungen: list, farbe: str):
-        k = 0
         for verbindung in liste_verbindungen:
-            # x-Koordinaten des Start- und Zielpunktes der Verbindung
-            plt.plot((verbindung[0][0], verbindung[1][0]),
-                     # y-Koordinaten des Start- und Zielpunktes der Verbindung
-                     (verbindung[0][1], verbindung[1][1]),
+            plt.plot((verbindung.startpunkt.x, verbindung.zielpunkt.x),
+                     (verbindung.startpunkt.y, verbindung.zielpunkt.y),
                      farbe)
-            k += 1
-        print("Anzahl : ", k)
 
 
 if __name__ == "__main__":
