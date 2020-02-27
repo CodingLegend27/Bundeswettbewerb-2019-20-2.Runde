@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import collections
 import numpy as np
 import matplotlib.ticker as plticker
+from collections import defaultdict
 
 
 # class Punkt():
@@ -41,15 +42,6 @@ import matplotlib.ticker as plticker
 #     def __str__(self):
 #         print("Hello \n\n")
 #         return f"Startpunkt: {startpunkt}; Zielpunkt: {zielpunkt}\n"
-
-
-def berechneLänge(p1: tuple, p2: tuple):
-    # c² = a² + b² wird angewendet (Pythagoras)
-    return math.sqrt(
-        (p1[0] - p2[0])**2
-        +
-        (p1[1] - p2[1])**2
-    )
 
 
 class EingabeFenster(Frame):
@@ -148,13 +140,91 @@ class Berechnungen():
         print("hello")
 
         # zu dieser Liste werden alle Pfade hinzugefügt
-        self.alle_pfade = []
-        self.berechneAllePfade(self.startpunkt, self.zielpunkt,self.graph.Dictionary(), [], [], [])
+        self.alle_pfade = self.berechneAllePfade(
+            self.startpunkt, self.zielpunkt, self.graph.Dictionary(), [], [], [], [])
 
+        ####
+        # TODO Alternativen aufräumen
+        #self.sucheAllePfade(self.graph.Dictionary(), self.startpunkt, self.zielpunkt, [])
 
-        print(self.alle_pfade)
+        #self.allePfade(self.startpunkt, self.zielpunkt)
 
-        
+        #self.alle_pfade = self.find_pfaddeee(self.graph.Dictionary(), self.startpunkt, self.zielpunkt, 100)
+
+        #self.alle_pfade = self.get_all_paths(self.graph.Dictionary(), self.startpunkt, self.zielpunkt)
+        ######
+
+        print(f"\n\n Alle möglichen Wege: ", self.alle_pfade)
+
+        # die Pfade in self.alle_pfade werden zu Tuples konvertiert und sind somit hashable und als key für ein Dictionary möglich
+        self.alle_pfade = [tuple(pfad) for pfad in self.alle_pfade]
+
+        # zu dieser Liste werden die Länge und die Anzahl der Abbiegevorgänge jedes einzelnen Pfades gespeichert
+        länge_anzahlAbbiegen_alle_pfade = []
+
+        for verbindung in self.alle_pfade:
+            länge_anzahlAbbiegen_alle_pfade.append(
+                [
+                    self.berechneLängePfad(verbindung),
+                    self.berechneAnzahlAbbiegenPfad(verbindung)
+                ]
+            )
+
+        zipObj = zip(self.alle_pfade, länge_anzahlAbbiegen_alle_pfade)
+
+        eigenschaften_alle_pfade = dict(zipObj)
+
+        print(eigenschaften_alle_pfade)
+
+        print("\n", eigenschaften_alle_pfade.items())
+
+        # eigenschaften_alle_pfade.items() liefert beispielsweise:
+        # (
+        #   (
+        #       (0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (2, 2), (2, 3), (3, 3), (4, 3)
+        #   ),
+        #       [8.414213562373096, 4]
+        # )
+        # das Tuple ist wie folgt aufgebaut: (pfad, [länge_pfad, anzahl_abbiegen])
+
+        # die kürzeste Strecke wird gefunden, indem die kleinste Zahl des ersten Elements der Eigenschaften-Liste des Tuples ermittelt wird
+        pfad_kürzesteStrecke = min(
+            eigenschaften_alle_pfade.items(), key=lambda x: x[1][0])
+        print("Pfad mit kürzester Strecke: ", pfad_kürzesteStrecke)
+
+        länge_kürzeste_Strecke = pfad_kürzesteStrecke[1][0]
+        print("Länge dieses Pfads: ", länge_kürzeste_Strecke)
+
+        # von der kürzesten Strecke ausgehend, werden diejenigen Strecken ausgewählt, die noch im Bereich der eingegebenen maximalen Verlängerung sind
+        max_verlängerung = float(
+            input("Maximale Verlängerung in Prozent: ")) / 100
+
+        # die Länge eines Weges mit maximaler Verlängerung wird mithilfe der eingegebenen maximalen Verlängerung berechnet
+        maximale_länge = länge_kürzeste_Strecke * \
+            max_verlängerung + länge_kürzeste_Strecke
+        print(maximale_länge)
+
+        # von dem Dictionary werden nun alle Pfade entfernt, deren Länge größer als die maximal zulässige Länge
+        # Umsetzung: von dem Dictionary wird eine Kopie erstellt, durch dessen Items mithilfe einer for-Schleife iteriert wird
+        for pfad in eigenschaften_alle_pfade.copy().items():
+            # ist die Länge des Pfades länger als die maximale Länge, wird der Pfad entfernt
+            if pfad[1][0] > maximale_länge:
+                eigenschaften_alle_pfade.pop(pfad[0])
+
+        print("Aktualisierte Pfade: ", eigenschaften_alle_pfade)
+
+        # von dem aktualisiertem Dictionary wird nun derjenige Pfad ausgewählt, bei welchem man am wenigsten abbiegen muss
+        # die kleinste Zahl des zweiten Elements der Eigenschaften-Liste des Tuples liefert hierfür Auskunft über die Anzahl der Abbiegevorgänge im jeweiligen Pfad
+        # dieser Pfad ist somit der optimalste Weg für Bilal
+        optimaler_pfad = min(
+            eigenschaften_alle_pfade.items(), key=lambda x: x[1][1])
+        print(f"\n >> Optimalster Weg: {optimaler_pfad}")
+
+        # Berechnung, um wie viel Prozent der optimalste Weg länger ist als der kürzeste Weg (in Prozent):
+        umweg = (optimaler_pfad[1][0] -
+                 länge_kürzeste_Strecke)/länge_kürzeste_Strecke
+        print(
+            f" >> zufahrender Umweg auf optimalstem Weg (im Vergleich zur kürzesten Strecke): {umweg*100} Prozent")
 
     def zuPunkt(self, eingabe: str):
         """ verwertet die Eingabe zu einem Objekt der Klasse Punkt aufgebaut ist
@@ -196,17 +266,25 @@ class Berechnungen():
 
         # Differenz der x-Koordinaten des Start- und Zielpunktes der gegebenen Kante
         x_diff = kante[0][0] - kante[1][0]
-        steigung = y_diff / x_diff
+        try:
+            steigung = y_diff / x_diff
+        # falls keine Veränderung in x-Richtung vorliegt, wird der Steigung die 'Zahl' unendlich zugewiesen
+        except ZeroDivisionError:
+            steigung = math.inf
+
         return steigung
 
-    def berechneAnzahlAbbiegenPfad(self, liste_verbindungen: list):
-        """ Berechnung der Anzahl, wie häufig auf dem gegebenen Pfad (Liste der Verbindungen = Parameter) abgebogen werden muss
+    def berechneAnzahlAbbiegenPfad(self, pfad: list):
+        """ Berechnung der Anzahl, wie häufig auf dem gegebenen Pfad (Liste von Punkten = Parameter) abgebogen werden muss
         """
         # Liste mit allen Steigungen der gegebenen Strecken wird erstellt
         steigungen = []
         # dabei wird die Methode berechneSteigungKante(tuple) aufgerufen
-        for verbindung in liste_verbindungen:
-            steigungen.append(self.berechneSteigungKante(verbindung))
+        for i in range(len(pfad)):
+            if i > 0:
+                steigungen.append(
+                    self.berechneSteigungKante((pfad[i-1], pfad[i]))
+                )
 
         # die Anzahl der Abbiegevorgänge beträgt zu Beginn 0
         anzahl_abbiegen = 0
@@ -231,16 +309,36 @@ class Berechnungen():
         # Rückgabewert: die Anzahl der Abbiegevorgänge im gegebenen Pfad
         return anzahl_abbiegen
 
-    def berechneEigenschaftenPfade(self):
-        """ Berechnet für jeden Pfad die Länge und die Anzahl der Abbiegevorgänge und speichert diese in einem Dictionary
-            --> der erste Wert ist die Länge des Pfads, der zweite Wert die Anzahl der Abbiegungen
+    def berechneLänge(self, p1: tuple, p2: tuple):
+        # c² = a² + b² wird angewendet (Pythagoras)
+        return math.sqrt(
+            (p1[0] - p2[0])**2
+            +
+            (p1[1] - p2[1])**2
+        )
+
+    def berechneLängePfad(self, pfad: list):
+        """ berechnet die Summe der Teilverbindungen des gegebenen Pfad
         """
-        anzahl_pfade = len(self.alle_pfade)
-        eigenschaften_pfade = {self.alle_pfade}
+        sum = 0
+        for i in range(len(pfad)):
+            if i > 0:
+                sum += self.berechneLänge(pfad[i-1], pfad[i])
+        return sum
 
-        pass
+    # def berechneEigenschaftenPfade(self):
+    #     """ Berechnet für jeden Pfad die Länge und die Anzahl der Abbiegevorgänge und speichert diese in einem Dictionary
+    #         --> der erste Wert ist die Länge des Pfads, der zweite Wert die Anzahl der Abbiegungen
+    #     """
+    #     anzahl_pfade = len(self.alle_pfade)
+    #     eigenschaften_pfade = {self.alle_pfade}
 
-    def berechneAllePfade(self, startpunkt, zielpunkt, graph: dict, aktuellerPfad, besucht, fertig):
+    #     pass
+
+    # Hier sind die Möglichkeiten
+    # 1. ist die bisher beste
+
+    def berechneAllePfade(self, startpunkt, zielpunkt, graph: dict, aktuellerPfad, besucht, fertig, allePfade):
         """ Berechnung aller Pfade im Graph self.graph vom gegebenen Startpunkt zum gegebenen Zielpunkt
             Es wird davon ausgegangen, dass vom Startpunkt aus der Zielpunkt mindestens über einen Pfad erreichbar ist, da sonst die Aufgabenstellung nicht viel Sinn machen würde
         """
@@ -250,24 +348,118 @@ class Berechnungen():
         # falls der Startpunkt und der Zielpunkt identisch sind,
         # werden alle Pfade zusammen mit dem akutellen Pfad ausgegeben
         if startpunkt == zielpunkt:
-            #aktuellerPfad.append(zielpunkt)
-            
-            print("akuteller pfad fertig: ", aktuellerPfad)
+            # aktuellerPfad.append(zielpunkt)
+
+            print("aktueller pfad fertig: ", aktuellerPfad)
             # self.k.zeichneWeg(aktuellerPfad, 'g-')
-            self.alle_pfade.append(aktuellerPfad)
-            
+
+            # zur Liste werden alle Pfade hinzugefügt, die mit dem zielpunkt enden
+            # hier wird immer eine Kopie des aktuellen Pfads erstellt, da sonst der Pfad nach Beenden der Methode verloren gehen würde (eigene Erfahrung)
+            allePfade.append(aktuellerPfad.copy())
 
         else:
-            if startpunkt in graph.keys():
-                for i in graph[startpunkt]:
-                    if i not in besucht:
-                        self.berechneAllePfade(
-                                i, zielpunkt, graph, aktuellerPfad, besucht, fertig)
-        
-        aktuellerPfad.pop()
+            if startpunkt in graph:
+                nachfolger = graph[startpunkt]
+                if zielpunkt in nachfolger:
+                    self.berechneAllePfade(
+                        zielpunkt, zielpunkt, graph, aktuellerPfad, besucht, fertig, allePfade)
+                else:
+                    for i in graph[startpunkt]:
+                        if i not in besucht:
+                            self.berechneAllePfade(
+                                i, zielpunkt, graph, aktuellerPfad, besucht, fertig, allePfade)
+
+        fertig.append(aktuellerPfad.pop())
         besucht.remove(startpunkt)
 
+        if not aktuellerPfad:
+            return allePfade
 
+    def sucheAllePfade(self, graph: dict, start, ziel, pfad):
+        pfad.append(start)
+        if start == ziel:
+            self.alle_pfade.append(pfad)
+        else:
+            if graph[start]:
+                for nachfolger in graph[start]:
+                    if nachfolger not in pfad:
+                        self.sucheAllePfade(graph, nachfolger, ziel, pfad)
+
+        # if ziel in pfad:
+        #         self.alle_pfade.append(pfad)
+
+    def allePfadeHelper(self, graph: dict, start, ziel, besucht, pfad):
+        besucht[start] = True
+        pfad.append(start)
+
+        if start == ziel:
+            self.alle_pfade.append(pfad)
+            print(">> Neuer Pfad gefunden: ", pfad)
+
+        else:
+            # Rekursion
+            if start in graph:
+                for nachfolger in graph[start]:
+                    if besucht[nachfolger] == False:
+                        self.allePfadeHelper(
+                            graph, nachfolger, ziel, besucht, pfad)
+
+        pfad.pop()
+        besucht[start] = False
+
+    def allePfade(self, start, ziel):
+        zipObj = zip(self.liste_punkte, [
+                     False for i in range(len(self.liste_punkte))])
+
+        besucht = dict(zipObj)
+        pfad = []
+        self.allePfadeHelper(self.graph.Dictionary(),
+                             start, ziel, besucht, pfad)
+
+    def find_pfaddeee(self, graph: dict, startknoten, zielknoten, max_tiefe):
+        pfade_gefunden = []
+        self.find_pfade_helper(
+            graph, startknoten, zielknoten, 0, max_tiefe, [], pfade_gefunden)
+        return pfade_gefunden
+
+    def find_pfade_helper(self, graph: dict, aktueller_knoten, zielknoten, aktuelle_tiefe, max_tiefe, aktueller_pfad: list, gefundene_pfade: list):
+        aktueller_pfad.append(aktueller_knoten)
+
+        if aktuelle_tiefe > max_tiefe:
+            return
+
+        if aktueller_knoten == zielknoten:
+            print(">> Neuer Pfad: ", aktueller_pfad)
+            gefundene_pfade.append(aktueller_pfad.copy())
+
+            aktueller_pfad.pop()
+            return
+
+        else:
+            for nachfolger in graph[aktueller_knoten]:
+                self.find_pfade_helper(
+                    graph, nachfolger, zielknoten, aktuelle_tiefe + 1, max_tiefe, aktueller_pfad, gefundene_pfade)
+
+    def get_all_paths(self, graph, startknoten, zielknoten):
+        return self.dfs(graph, startknoten, zielknoten, [], [], [])
+
+    def dfs(self, graph, aktueller_knoten, zielknoten, besucht, pfad, alle_pfade):
+        besucht.append(aktueller_knoten)
+        pfad.append(aktueller_knoten)
+
+        if aktueller_knoten == zielknoten:
+            alle_pfade.append(pfad)
+
+        for nachfolger in graph[aktueller_knoten]:
+            if nachfolger not in besucht:
+                self.dfs(graph, nachfolger, zielknoten,
+                         besucht, pfad, alle_pfade)
+
+        pfad.pop()
+        besucht.pop()
+
+        if not pfad:
+            return alle_pfade
 
 # TODO Verfahren mit Breitensuche und Backtracking (Recherchieren!)
 
@@ -275,9 +467,13 @@ class Berechnungen():
 class Graph():
     def __init__(self):
         """initialisiert einen Graph."""
-        self.__graph_dict = {}
+        self.__graph_dict = defaultdict(list)
 
     def Dictionary(self):
+        """ gibt das Dictionary sortiert wieder """
+        self.__graph_dict = {
+            k: sorted(self.__graph_dict[k]) for k in sorted(self.__graph_dict)}
+
         print(self.__graph_dict)
         print(self.Knoten())
         return self.__graph_dict
@@ -305,10 +501,17 @@ class Graph():
     def addKante(self, kante: tuple):
         """fügt die eingebene Kante zum Graph."""
         knoten1, knoten2 = kante
-        if knoten1 in self.__graph_dict:
-            self.__graph_dict[knoten1].append(knoten2)
-        else:
-            self.__graph_dict[knoten1] = [knoten2]
+        # if knoten1 in self.__graph_dict:
+        # bei dieser Aufgabe handelt es sich um ungerichtete Kanten,
+        # also Kanten die man in beide Richtungen 'befahren' kann,
+        # also wie normale Straßen (keine Einbahnstraßen)
+        # --> so muss dies auch bei dem Dictionary beachtet werden
+        # --> bei beiden Knoten wird jeweils auch der andere Knoten hinzugefügt
+        self.__graph_dict[knoten1].append(knoten2)
+        self.__graph_dict[knoten2].append(knoten1)
+
+        # else:
+        #     self.__graph_dict[knoten1] = [knoten2]
 
     def __generiereKanten(self):
         """eine statische Methode die zum Erstellen der Kanten des Graphs, die
@@ -436,7 +639,6 @@ class Koordinatensystem():
 
         plt.legend(loc='upper left', frameon=True)
         plt.show()
-        
 
     def zeichneWeg(self, liste_verbindungen: list, farbe: str):
         k = 0

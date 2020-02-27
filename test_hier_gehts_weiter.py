@@ -1,7 +1,5 @@
 import math
-
-
-
+# Methoden in abbiegen.py vorhanden:
 def berechneSteigungKante(kante: tuple):
     """berechnet die Steigung der eingegebenen Kante."""
     # Differenz der y-Koordinaten des Start- und Zielpunktes der gegebenen Kante
@@ -16,7 +14,6 @@ def berechneSteigungKante(kante: tuple):
         steigung = math.inf
 
     return steigung
-
 
 def berechneAnzahlAbbiegenPfad(pfad: list):
     """ Berechnung der Anzahl, wie häufig auf dem gegebenen Pfad (Liste von Punkten = Parameter) abgebogen werden muss
@@ -53,7 +50,6 @@ def berechneAnzahlAbbiegenPfad(pfad: list):
     # Rückgabewert: die Anzahl der Abbiegevorgänge im gegebenen Pfad
     return anzahl_abbiegen
 
-
 def berechneLänge(p1: tuple, p2: tuple):
     # c² = a² + b² wird angewendet (Pythagoras)
     return math.sqrt(
@@ -61,7 +57,6 @@ def berechneLänge(p1: tuple, p2: tuple):
         +
         (p1[1] - p2[1])**2
     )
-
 
 def berechneLängePfad(pfad: list):
     """ berechnet die Summe der Teilverbindungen des gegebenen Pfad
@@ -72,7 +67,7 @@ def berechneLängePfad(pfad: list):
             sum += berechneLänge(pfad[i-1], pfad[i])
     return sum
 
-
+# Test ab hier:
 alle_pfade = [
     [(0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (2, 2), (2, 3), (3, 3), (4, 3)],
     [(0, 0), (0, 1), (0, 2), (0, 3), (1, 3), (2, 2), (3, 3), (4, 3)],
@@ -85,10 +80,8 @@ alle_pfade = [
     [(0, 0), (0, 1), (1, 1), (2, 2), (2, 3), (3, 3), (4, 3)],
     [(0, 0), (0, 1), (1, 1), (2, 2), (3, 3), (4, 3)]
 ]
-
 # die Pfade in alle_pfade werden zu Tuples konvertiert und sind somit hashable und als key für ein Dictionary möglich
-alle_pfade = [tuple(pfad) for pfad in alle_pfade]
-    
+alle_pfade = [tuple(pfad) for pfad in alle_pfade]    
 
 # zu dieser Liste werden die Länge und die Anzahl der Abbiegevorgänge jedes einzelnen Pfades gespeichert
 länge_anzahlAbbiegen_alle_pfade = []
