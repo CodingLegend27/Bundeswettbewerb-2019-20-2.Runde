@@ -144,6 +144,9 @@ class Environment(tk.Tk, object):
         # IWAS origin ?!
         origin = np.array([20, 20])
 
+        # Batterien zeichnen
+        
+
         # IWAS ANDERES hell?!
         hell1_center = origin + np.array([UNIT * 2, UNIT])
         self.hell = self.canvas.create_rectangle(
