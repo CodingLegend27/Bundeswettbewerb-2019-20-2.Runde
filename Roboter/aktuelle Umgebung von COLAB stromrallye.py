@@ -85,18 +85,24 @@ class Environment(tk.Tk, object):
     def __init__(self, eingabe: str):
         """ erstellt eine Umgebung mit der gegebenen Eingabe """
         super(Environment, self).__init__()
-        
+
+        # TODO IWAS origin ?!
+        self.origin = np.array([UNIT/2, UNIT/2])
+
+        eingabe = eingabe.split()
+        self.size = int(eingabe.pop(0))
         # Kovertiert die Eingabe
-        eingabe = self.convert_eingabe(eingabe)
-        self.size = eingabe.pop(0)
+        eingabe = self._convert_eingabe(eingabe)
         
-        # Die Positon des Roboters oder der Batterien werden in einem Tuple der Form (x, y, ladung) gespeichert
+        
+        # Die Positon des Roboters oder der Batterien werden in einer Liste der Form (x, y, ladung) gespeichert
         self.roboter = list(eingabe.pop(0))
         self.anzahl_batterien = eingabe.pop(0)
-        # die restlichen Batterien werden hinzugefügt
-        self.batterien = []
+
+        # die restlichen Batterien werden hinzugefügt und in Reihenfolge in einem Dictionary gespeichert
+        self.batterien = dict()
         for n in range(self.anzahl_batterien):
-            self.batterien.append(eingabe.pop(0))
+            self.batterien[n] = eingabe.pop(0)
 
 
         self.action_space = [0, 1, 2, 3]
@@ -104,27 +110,28 @@ class Environment(tk.Tk, object):
         self.title('Stromrallye')
         self.geometry('{0}x{1}'.format(self.size * UNIT, self.size * UNIT))
         self._build_stromrallye()
+        self._update_gui()
 
+        # self.batterien[0][2] = 5
+        # self._update_gui()
 
         
-    def convert_eingabe(self, eingabe: str):
-        """ Kovertierung der gegebenen Eingabe im gegebenen Format, siehe oben (oder auf der BwInf-Website) """
+    def _convert_eingabe(self, eingabe: list):
+        """ Konvertierung der gegebenen Eingabe im gegebenen Format, siehe oben (oder auf der BwInf-Website) """
         new_eingabe = []
-        eingabe = eingabe.split()
         for element in eingabe:
-            if len(element) == 1:
+            if not ',' in element:
                 new_eingabe.append(int(element))
             else:
                 element = list(element)
-                new_element = (
-                    int(element[0]),
-                    int(element[2]),
-                    int(element[4])
-                )
-                new_eingabe.append(new_element)                
+                x, y, ladung = int(element[0]), int(element[2]), int(element[4])
+                new_element = [x, y, ladung]
+                new_eingabe.append(new_element)               
         return new_eingabe
     
     def _build_stromrallye(self):
+        """ in dieser Methode wird das Spielbrett auf Ausgangsstellung auf einer Zeichenfläche (Canvas) gezeichnet """
+
         # Canvas objekt wird erstellt
         # weißer Hintergrund mit gegebener, quadratischer Größe des Spielbretts
         self.canvas = tk.Canvas(
@@ -140,44 +147,120 @@ class Environment(tk.Tk, object):
             x0, y0, x1, y1 = 0, reihe, self.size * UNIT, reihe
             self.canvas.create_line(x0, y0, x1, y1)
 
-        
-        # IWAS origin ?!
-        origin = np.array([20, 20])
 
-        # Batterien zeichnen
+        # Ersatzbatterien mit aktuellem Akkustand zeichnen
+        for item in self.batterien.items():
+            index, batterie_eigenschaften = item
+            x, y, ladung = batterie_eigenschaften
+
+            # Mittelpunkt des Feldes der jeweiligen Ersatzbatterie
+            batt_center = np.array([(x-1)* UNIT, (y-1) * UNIT]) + self.origin
+
+            # gelbes Quadrat als Zeichen für eine Ersatzbatterie
+            self.canvas.create_rectangle(
+                batt_center[0] - 15, batt_center[1] - 15,
+                batt_center[0] + 15, batt_center[1] + 15,
+                fill='yellow'
+            )
+
+            # ein Text mit der Ladung der Batterie wird im Mittelpunkt des Feldes angezeigt
+            # die Text-Widgets der Canvas-Zeichenfläche werden mit zusätzlichen Tags versehen, damit diese später auf dem GUI verändert werden können:
+            # 1. ein Tag mit 'ersatzbatterie' um auf alle Ersatzbatterien zugreifen zu können
+            # 2. ein Tag mit 'ersatzbatterie_{index}' --> z.B. ersatzbatterie_1 gibt die zweite Ersatzbatterie an
+            # die Text-Widgets können dann später über canvas.itemconfigure verändert werden
+            self.canvas.create_text(
+                *batt_center, text=f'{ladung}', tags=('ersatzbatterie', f'ersatzbatterie_{index}')
+            )
+        
+        # Roboter zeichnen:
+        x, y, ladung = self.roboter
+        robo_center = np.array([(x-1) * UNIT, (y-1) * UNIT]) + self.origin
+
+        # grünes Quadrat als Zeichen für den Roboter
+        # das grüne Quadrat wird mit dem Tag 'roboter' versehen, um später darauf zugreifen zu können
+        self.canvas.create_rectangle(
+            robo_center[0] - 15, robo_center[1] - 15,
+            robo_center[0] + 15, robo_center[1] + 15,
+            fill='green', tags=('roboter')
+        )
+
+        # Text mit aktueller Ladung der Bordbatterie
+        # das Text-Widget wird mit 'roboter_batterie' versehen
+        self.canvas.create_text(
+            *robo_center, text=f'{ladung}', tags=('roboter_batterie')
+        )
+
         
 
-        # IWAS ANDERES hell?!
-        hell1_center = origin + np.array([UNIT * 2, UNIT])
-        self.hell = self.canvas.create_rectangle(
-            hell1_center[0] - 15, hell1_center[1] - 15,
-            hell1_center[0] + 15, hell1_center[1] + 15,
-            fill='black')
-        # hell
-        hell2_center = origin + np.array([UNIT, UNIT*2])
-        self.hell2  = self.canvas.create_rectangle(
-            hell1_center[0] - 15, hell1_center[1] - 15,
-            hell1_center[0] + 15, hell1_center[1] + 15,
-            fill='black')
 
-        # create oval
-        oval_center = origin + UNIT * 2
-        self.oval = self.canvas.create_oval(
-            oval_center[0] - 15, oval_center[1] - 15,
-            oval_center[0] + 15, oval_center[1] + 15,
-            fill='yellow')
+
         
-        # create red rect
-        self.rect = self.canvas.create_rectangle(
-            origin[0] - 15, origin[1] - 15,
-            origin[0] + 15, origin[1] + 15,
-            fill='red')
+
+
+        #  self.canvas.itemconfigure('ersatzbatterie_2', text='22')
+        
+
+
+
+        # # IWAS ANDERES hell?!
+        # hell1_center = origin + np.array([UNIT * 2, UNIT])
+        # self.hell = self.canvas.create_rectangle(
+        #     hell1_center[0] - 15, hell1_center[1] - 15,
+        #     hell1_center[0] + 15, hell1_center[1] + 15,
+        #     fill='black')
+        # # hell
+        # hell2_center = origin + np.array([UNIT, UNIT*2])
+        # self.hell2  = self.canvas.create_rectangle(
+        #     hell1_center[0] - 15, hell1_center[1] - 15,
+        #     hell1_center[0] + 15, hell1_center[1] + 15,
+        #     fill='black')
+
+        # # create oval
+        # oval_center = origin + UNIT * 2
+        # self.oval = self.canvas.create_oval(
+        #     oval_center[0] - 15, oval_center[1] - 15,
+        #     oval_center[0] + 15, oval_center[1] + 15,
+        #     fill='yellow')
+        
+        # # create red rect
+        # self.rect = self.canvas.create_rectangle(
+        #     origin[0] - 15, origin[1] - 15,
+        #     origin[0] + 15, origin[1] + 15,
+        #     fill='red')
             
         
         # Canvas pack
         self.canvas.pack()
 
+    def _update_gui(self):
+        """ aktualisiert die angezeigten Zahlen und die Position des Roboters auf dem GUI """
 
+        #
+
+        # Roboter aktualisieren:
+        # grünes Quadrat bewegen und die Zahl für die Ladung der Bordbatterie aktualisieren
+        x, y, ladung = (1, 2, 1)
+        new_robo = np.array([(x-1) * UNIT, (y-1) * UNIT]) #+ self.origin
+        self.canvas.itemconfigure('roboter', x=new_robo[0], y=new_robo[1])
+        self.canvas.itemconfigure('roboter_batterie', text=f'{ladung}')
+
+
+
+        # # Akkuladung der Ersatzbatterien wird aktualisiert
+        # # TODO self.batterie ist ein Dictionary! 
+        # for batterie in self.batterien:
+        #     x, y, ladung = batterie
+        #     batt_center = np.array([(x-1)* UNIT, (y-1) * UNIT]) + self.origin
+        #     self.canvas.create_text(
+        #         *batt_center, text=f'{ladung}'
+        #     )
+
+        # die Position des Roboters wird aktualisiert
+        #self.canvas.move()
+
+        self.canvas.pack()
+
+    
     def reset(self):
         self.update()
         time.sleep(0.5)
@@ -211,14 +294,14 @@ class Environment(tk.Tk, object):
 
 if __name__ == "__main__":
     
-    eingabe = """
-    5
-    3,5,9
-    3
-    5,1,3
-    1,2,2
-    5,4,3
-    """
+    # eingabe = """
+    # 5
+    # 3,5,9
+    # 3
+    # 5,1,3
+    # 1,2,2
+    # 5,4,3
+    # """
 
     # erste Zeile: Größe des Spielbretts (quadratisch)
     # zweite Zeile: Koordinaten des Robotors und die Ladung seiner Batterie
