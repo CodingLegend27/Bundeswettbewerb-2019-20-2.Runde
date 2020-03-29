@@ -17,7 +17,7 @@ class Steuerung:
         # Aufbau: [(x1, y1, ladung1), (x2, y2, ladung2), ...]
         self.batterien = batterien
 
-        self.main()
+        self.main2()
 
     def erreichbareBatterien(self, x: int, y: int, ladung: int, restliche_batterien: list):
         """ mithilfe der Manhattan-Distanz werden alle Batterien ermittelt,
@@ -100,11 +100,177 @@ class Steuerung:
         # zu den restlichen Batterien wird die jetzt am Boden liegende Ladung hinzugefügt, die die Ladung der ehemaligen Bordbatterie hat
         restliche_batterien.append(self.roboter[2].insert(2, ehemalige_bordbatterie_ladung))
         
+        
+        
+        
         # Breitensuche gutes Video https://www.youtube.com/watch?v=7RCp2jNwxjQ
         
         pass
+    
+    def main2(self):
+        # erstellt Graphen, um fügt für jede Ersatzbatterie 
+        # die jeweils mit der eigenen Ladung erreichbaren Batterien als Nachfolgeknoten zum Graph,
+        # wobei die Gewichtung der Ladungsverbrauch zur Batterie ist
+        # der Graph soll gerichtet sein
+        self.graph = Graph()
+        
+        for batterie in self.batterien:
+            # von der aktuellen Batterie aus werden alle erreichbaren Batterien ermittelt
+            restliche_batterien = self.batterien.copy()
+            restliche_batterien.remove(batterie)
+            erreichbare_batterien = self.erreichbareBatterien(*batterie, restliche_batterien)
+            
+            # die erreichbaren Batterien bilden zusammen mit der aktuellen Batterie eine Kante,
+            # wobei die aktuelle Batterie der Startknoten der Kante und die erreichbare Batterie der Endknoten der Kante ist
+            # die Gewichtung der Kante ist die verbrauchte Ladung von der aktuellen Batterie zur erreichbaren Batterie
+            for erreichbare_batterie in erreichbare_batterien:
+                # nur die x- und y-Koordinaten der Batterien werden benötigt, die Ladung nicht
+                x_start, y_start = batterie[:2]
+                x_ende, y_ende = erreichbare_batterie[:2]
+                
+                # verbrauchte Ladung ist die Manhattan-Distanz
+                verbrauchte_ladung = self.manhattanDistanz(x_start, y_start, x_ende, y_ende)
+                self.graph.add_Kante((x_start, y_start), (x_ende, y_ende), verbrauchte_ladung)
+        
+        # dasselbe wird ebenfalls für den Roboter durchgeführt
+        roboter_erreichbare_batterien = self.erreichbareBatterien(*self.roboter, self.batterien)
+        for erreichbare_batterie in roboter_erreichbare_batterien:
+            x_start, y_start = self.roboter[:2]
+            x_ende, y_ende = erreichbare_batterie[:2]
+            verbrauchte_ladung = self.manhattanDistanz(x_start, y_start, x_ende, y_ende)
+            self.graph.add_Kante((x_start, y_start), (x_ende, y_ende), verbrauchte_ladung)
+        
+        aktuelle_ladung_batterien = defaultdict(list)
+        for batterie in self.batterien:
+            x, y, ladung = batterie
+            aktuelle_ladung_batterien[(x, y)] = ladung
+        
+        aktuelle_ladung_batterien[self.roboter[:2]] = self.roboter[2]
+        #längster_pfad = self.bfs(self.graph, (self.roboter[:2]), self.roboter[2], aktuelle_ladung_batterien, self.batterien)
+        
+        # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt
+        restliche_batterien = list(map(lambda batterie: batterie[:2], self.batterien))
+        
+        längster_pfad = self.dfs(self.graph, self.roboter[:2], self.roboter[2], aktuelle_ladung_batterien, restliche_batterien)
+               
+        pass
+    
+    def dfs(self, graph, start, aktuelle_ladung, aktuelle_ladung_batterien, restliche_batterien, pfad=[]):
 
 
+        
+        pfad.append(start)
+        
+        if len(pfad)>1:
+        # aktualisiere Nachbarknoten des vorherigen Knoten, da sich bei diesem die Ladung geändert hat
+            
+            restliche_batterien.remove(start)
+            
+            
+            vorheriger_knoten = pfad[-1]
+            erreichbare_batterien_neu = self.erreichbareBatterien(*vorheriger_knoten, aktuelle_ladung, restliche_batterien)
+            erreichbare_batterien_neu = list(map(
+                lambda batterie: (*batterie, self.manhattanDistanz(
+                    *batterie, *vorheriger_knoten
+                )), erreichbare_batterien_neu
+            ))
+            graph.aktualisiereNachfolger(vorheriger_knoten, erreichbare_batterien_neu)
+            aktuelle_ladung_batterien[vorheriger_knoten] = aktuelle_ladung
+            
+            if aktuelle_ladung > 0:
+                restliche_batterien.append((*vorheriger_knoten, aktuelle_ladung))
+        
+        
+        
+        
+        
+        aktuelle_ladung = aktuelle_ladung_batterien[start]
+        
+        
+        
+        
+        
+        if graph[start]:
+            
+            # für benachbarte Knoten wird die DFS aufgerufen
+            for nachfolger_item in graph[start]:
+                knoten, gewichtung = nachfolger_item[0]
+                
+                # falls der Knoten noch nicht besucht wurde
+                if knoten in restliche_batterien:
+                   
+                    
+                    # Ladungsverbrauch wird abgezogen
+                    #aktuelle_ladung -= gewichtung
+                    
+                    
+                    self.dfs(graph, knoten, aktuelle_ladung-gewichtung, aktuelle_ladung_batterien, restliche_batterien, pfad)
+
+                # falls alle Batterien besucht wurden
+                elif not restliche_batterien:
+                    return pfad
+
+        else:
+            if not restliche_batterien:
+                return pfad
+            # else: 
+            #     return None
+        
+            
+    def bfs(self, graph, aktueller_knoten, aktuelle_ladung_roboter, aktuelle_ladung_batterien, restliche_batterien, aktueller_pfad=[]):
+        
+        # # jetzt ändert sich eventuell die erreichbaren Batterien der aktuellen Ersatzbatterie, die ja eine neue Ladung bekommen
+        #         erreichbare_batterien_neu = self.erreichbareBatterien(*knoten, aktuelle_ladung_roboter, restliche_batterien)
+        #         graph.aktualisiereNachfolger(knoten, erreichbare_batterien_neu)
+        
+        if graph[aktueller_knoten]:
+            
+            for nachfolge_item in graph[aktueller_knoten]:
+                #if knoten not in aktueller_pfad
+                knoten, verbrauchte_ladung = nachfolge_item[0]
+                
+                aktueller_pfad.append(knoten)
+                            
+                aktuelle_ladung_roboter -= verbrauchte_ladung
+                
+                # Ladungstausch: Bordbatterie des Roboters und aktuelle Ersatzbatterie werden getauscht
+                # Ladung der Ersatzbatterie wird ermittelt
+                batterie_am_boden = aktuelle_ladung_batterien[knoten]
+                
+                try:
+                    # die aktuelle Batterie wird von den restlichen Batterien entfernt
+                    restliche_batterien.remove((*knoten, batterie_am_boden))
+                except:
+                    pass
+                                 
+                # Ladung der Ersatzbatterie wird zur aktuellen Ladung des Roboters
+                #aktuelle_ladung_batterien[knoten] = aktuelle_ladung_roboter
+                
+                # falls keine Batterien mehr übrig sind
+                if not restliche_batterien: 
+                    if aktuelle_ladung_roboter > 0:
+                        # TODO Ladung leer machen
+                        pass
+                    return aktueller_pfad
+                    
+                
+                # aktuelle_nachfolger = []
+                # aktuelle_nachfolger_items = graph[knoten]
+                # for item in aktuelle_nachfolger_items:
+                #     k, g = item[0]
+                #     aktuelle_nachfolger.append(k)
+                
+                                            
+                # aktuelle Ladung des Roboters wird zur Ladung die am Boden lag, da der Roboter die Batterie am Boden aufnimmt
+                #aktuelle_ladung_roboter = batterie_am_boden
+                
+                return self.bfs(graph, knoten, aktuelle_ladung_roboter, aktuelle_ladung_batterien, restliche_batterien, aktueller_pfad)
+
+        else:
+            return None
+             
+        pass
+    
 class Graph:
     """ Klasse gerichteter Graph zum Verwalten von Knoten und Kanten mit Gewichtungen """
 
@@ -120,6 +286,11 @@ class Graph:
             ende: gewichtung
         })
 
+    def delete_Kante(self, start, entfernendes_item):
+        """ das zu entfernende Item wird aus der Liste des Startknoten entfernt
+        """
+        self.adjazenzliste[start].remove(entfernendes_item)
+    
     @property
     def knoten(self):
         # TODO gilt für gerichteten Graphen nicht
@@ -145,7 +316,33 @@ class Graph:
         """ gibt die Nachfolgeknoten zusammen mit deren Gewichtungen zurück """
         return [list(n.items()) for n in self.adjazenzliste[key]]
 
-
+    def aktualisiereNachfolger(self, knoten, neueNachfolger: list):
+        """ updatet die Nachfolgerknoten des gegebenen Knoten:
+            neue Nachfolger werden hinzugefügt, nicht mehr vorhandene werden entfernt
+        """
+        ursprüngliche_nachfolger_items = self.adjazenzliste[knoten]
+        for nachfolger_item in neueNachfolger:
+            
+            # falls das Item nicht in den aktuellen Nachfolger Items ist,
+            # muss dieses hinzugefügt werden
+            if nachfolger_item not in ursprüngliche_nachfolger_items:
+                x, y, gewichtung = nachfolger_item
+                self.add_Kante(knoten, (x, y), gewichtung)                
+            
+            else:
+                ursprüngliche_nachfolger_items.remove(nachfolger_item)
+        
+        # falls noch Items übrig sind,
+        # müssen diese entfernt werden
+        if ursprüngliche_nachfolger_items:
+            for item in ursprüngliche_nachfolger_items:
+                self.delete_Kante(knoten, item)
+        
+                
+            
+            
+        
+        
 
 if __name__ == '__main__':
     eingabe = """
@@ -163,7 +360,7 @@ if __name__ == '__main__':
         (5, 1, 3),
         (1, 2, 2),
         (5, 4, 3),
-        (4, 3, 2)
+        #(4, 3, 2)
     ]
 
     s = Steuerung(roboter, batterien)
