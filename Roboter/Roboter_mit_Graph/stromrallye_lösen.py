@@ -28,12 +28,15 @@ class Steuerung:
         # die gegebene Ladung ist der maximal mögliche Betrag der Manhattan-Distanz
         # daher werden alle Batterien herausgefiltert, dessen Manhattan-Distanz größer als die gegebene Ladung ist
         # und die Distanz größer als 0 ist, damit sie sich nicht selbst als erreichbare Batterie sieht
-        erreichbare_batterien = list(filter(
-            lambda batterie_item: self.manhattanDistanz(
-                x, y, batterie_item[0], batterie_item[1]) <= ladung and self.manhattanDistanz(
-                x, y, batterie_item[0], batterie_item[1]) > 0, restliche_batterien
-        ))
-        return erreichbare_batterien
+        if ladung >= 0:
+            erreichbare_batterien = list(filter(
+                lambda batterie_item: self.manhattanDistanz(
+                    x, y, batterie_item[0], batterie_item[1]) <= ladung and self.manhattanDistanz(
+                    x, y, batterie_item[0], batterie_item[1]) > 0, restliche_batterien
+            ))
+            return erreichbare_batterien
+        else:
+            return None
 
     def manhattanDistanz(self, x1, y1, x2, y2):
         """ berechnet die Manhattan-Distanz zweier Punkte P1(x1/y1) und P2(x2/y2) 
@@ -145,29 +148,35 @@ class Steuerung:
             x, y, ladung = batterie
             aktuelle_ladung_batterien[(x, y)] = ladung
         
-        aktuelle_ladung_batterien[self.roboter[:2]] = self.roboter[2]
+        # aktuelle_ladung_batterien[self.roboter[:2]] = self.roboter[2]
         #längster_pfad = self.bfs(self.graph, (self.roboter[:2]), self.roboter[2], aktuelle_ladung_batterien, self.batterien)
         
         # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt
         restliche_batterien = list(map(lambda batterie: batterie[:2], self.batterien))
         
-        längster_pfad = self.dfs(self.graph, self.roboter[:2], self.roboter[2], aktuelle_ladung_batterien, restliche_batterien)
+        längster_pfad = self.dfs(self.graph, self.roboter[:2], self.roboter[2], aktuelle_ladung_batterien)
                
         pass
     
-    def dfs(self, graph, start, aktuelle_ladung, aktuelle_ladung_batterien, restliche_batterien, pfad=[]):
-
-
+    def dfs(self, graph, start, aktuelle_ladung, aktuelle_ladung_batterien, pfad=[]):
         
-        pfad.append(start)
+     
         
-        if len(pfad)>1:
+        pfad+=[start]
+        print("Neuer Pfad: ", pfad)
+        
+        if len(pfad)>2:
         # aktualisiere Nachbarknoten des vorherigen Knoten, da sich bei diesem die Ladung geändert hat
             
-            restliche_batterien.remove(start)
+            #restliche_batterien.remove(start)    
+                    
+            vorheriger_knoten = pfad[-1]            
+            # Aktualisierung des Dictionary zum Speichern der aktuellen Ladung
+            aktuelle_ladung_batterien[vorheriger_knoten] = aktuelle_ladung
             
-            
-            vorheriger_knoten = pfad[-1]
+            # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt, die aktuell eine Ladung > 0 besitzten
+            restliche_batterien = list(map(lambda batterie: batterie[:2], aktuelle_ladung_batterien))            
+
             erreichbare_batterien_neu = self.erreichbareBatterien(*vorheriger_knoten, aktuelle_ladung, restliche_batterien)
             erreichbare_batterien_neu = list(map(
                 lambda batterie: (*batterie, self.manhattanDistanz(
@@ -175,21 +184,27 @@ class Steuerung:
                 )), erreichbare_batterien_neu
             ))
             graph.aktualisiereNachfolger(vorheriger_knoten, erreichbare_batterien_neu)
-            aktuelle_ladung_batterien[vorheriger_knoten] = aktuelle_ladung
             
-            if aktuelle_ladung > 0:
-                restliche_batterien.append((*vorheriger_knoten, aktuelle_ladung))
-        
-        
-        
-        
-        
-        aktuelle_ladung = aktuelle_ladung_batterien[start]
-        
-        
-        
-        
-        
+            #aktuelle_ladung_batterien[vorheriger_knoten] = aktuelle_ladung
+            
+            # if aktuelle_ladung > 0:
+            #     restliche_batterien.append((*vorheriger_knoten, aktuelle_ladung))
+            
+            
+            aktuelle_ladung = aktuelle_ladung_batterien[start]  
+            
+            
+        else:
+            # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt, die aktuell eine Ladung > 0 besitzten
+            # 1. Filtern der Batterien mit Ladung > 0
+            restliche_batterien = list(filter(
+                lambda batterie: batterie[1] > 0, list(aktuelle_ladung_batterien.items())
+            ))
+            # 2. Nur die x- und y-Koordinaten werden benötigt
+            restliche_batterien = list(map(lambda batterie: batterie[0], restliche_batterien))
+                 
+ 
+                
         if graph[start]:
             
             # für benachbarte Knoten wird die DFS aufgerufen
@@ -198,21 +213,29 @@ class Steuerung:
                 
                 # falls der Knoten noch nicht besucht wurde
                 if knoten in restliche_batterien:
-                   
-                    
+                                       
                     # Ladungsverbrauch wird abgezogen
                     #aktuelle_ladung -= gewichtung
-                    
-                    
-                    self.dfs(graph, knoten, aktuelle_ladung-gewichtung, aktuelle_ladung_batterien, restliche_batterien, pfad)
+                                        
+                    p = self.dfs(graph, knoten, aktuelle_ladung-gewichtung, aktuelle_ladung_batterien, pfad)
+                    # print("Pfad: ", p)
+                
+                    if p:
+                        pass
+                    #   return p
 
                 # falls alle Batterien besucht wurden
                 elif not restliche_batterien:
-                    return pfad
-
+                    #return pfad
+                    pass
+                else:
+                    #return pfad
+                    pass
+                
         else:
-            if not restliche_batterien:
-                return pfad
+            # if not restliche_batterien:
+            #return pfad
+            pass
             # else: 
             #     return None
         
@@ -337,7 +360,7 @@ class Graph:
         if ursprüngliche_nachfolger_items:
             for item in ursprüngliche_nachfolger_items:
                 self.delete_Kante(knoten, item)
-        
+    
                 
             
             
@@ -357,9 +380,10 @@ if __name__ == '__main__':
     roboter = (3, 5, 9)
     anzahl_batterien = 3
     batterien = [
+        (5, 4, 3),
         (5, 1, 3),
         (1, 2, 2),
-        (5, 4, 3),
+
         #(4, 3, 2)
     ]
 
