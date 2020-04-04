@@ -6,6 +6,7 @@ import time
 
 
 import sys
+import random
 if sys.version_info.major == 2:
     import Tkinter as tk
 else:
@@ -25,18 +26,18 @@ class Steuerung:
         print(eingabe)
         # Größe des quadratischen Spielfelds
         self.size = int(eingabe.pop(0))
-        
+
         # Aufbau: (x, y, ladung)
         self.roboter = self.zuPunkt(eingabe.pop(0))
-        
+
         self.anzahl_batterien = int(eingabe.pop(0))
-            
+
         # Aufbau: [(x1, y1, ladung1), (x2, y2, ladung2), ...]
-        self.batterien = [self.zuPunkt(eingabe.pop(0)) for i in range(self.anzahl_batterien)]
-        
+        self.batterien = [self.zuPunkt(eingabe.pop(0))
+                          for i in range(self.anzahl_batterien)]
 
         self.main2()
-    
+
     def zuPunkt(self, eingabe: str):
         """ verwertet die Eingabe aus ('x, y, ladung') aufgebaut ist
         z.B.: '(14, 0, 1)'
@@ -53,11 +54,11 @@ class Steuerung:
         y = int(eingabe[ind_komma_1 + 1: ind_komma_2])
 
         # die Ladung wird durch die Ziffern vom zweiten Komma bis zum Ende dargestellt
-        ladung = int(eingabe[ind_komma_2 + 1: ])
-        
+        ladung = int(eingabe[ind_komma_2 + 1:])
+
         # Ein Tuple aus x, y und Ladung wird zurückgegeben
         return (x, y, ladung)
-    
+
     def erreichbareBatterien(self, x: int, y: int, ladung: int, restliche_batterien: list):
         """ mithilfe der Manhattan-Distanz werden alle Batterien ermittelt,
             von dem gegebenen Standort aus erreichbar sind
@@ -176,6 +177,10 @@ class Steuerung:
                 self.graph.add_Kante((x_start, y_start),
                                      (x_ende, y_ende), verbrauchte_ladung)
 
+            # falls die Ladung der Batterie der aktuellen Batterie gerade ist, kann sie ihre Ladung auf 0 setzen
+            # und zu ihrem Ursprungsort zurückkehren
+            # umgesetzt wird dies, indem
+
         # dasselbe wird ebenfalls für den Roboter durchgeführt
         roboter_erreichbare_batterien = self.erreichbareBatterien(
             *self.roboter, self.batterien)
@@ -196,9 +201,6 @@ class Steuerung:
 
         #längster_pfad = self.bfs(self.graph, (self.roboter[:2]), self.roboter[2], aktuelle_ladung_batterien, self.batterien)
 
-        # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt
-        restliche_batterien = list(
-            map(lambda batterie: batterie[:2], self.batterien))
 
         längster_pfad = self.dfs(
             graph=self.graph,
@@ -209,10 +211,309 @@ class Steuerung:
         # )
         print("PFAD: ", längster_pfad)
 
-        env = Environment(self.size, self.roboter, self.anzahl_batterien, self.batterien)
+        abfolge_schritte = []
+        for i in range(len(längster_pfad)):
+            if i>0:
+                p1 = längster_pfad[i-1]
+                p2 = längster_pfad[i]
+                
+                schritte = self.findeWeg(*p1, *p2)
+                abfolge_schritte.append(schritte)
+                
+
+        # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt
+        batterien_x_y = list(
+            map(lambda batterie: batterie[:2], self.batterien))
+        
+        # for i in range(len(längster_pfad)):
+        #     if i > 0:
+        #         anfang = längster_pfad[i-1]
+        #         ende = längster_pfad[i]
+                
+        #         delta_x = ende[0] - anfang[0]
+        #         delta_y = ende[1] - anfang[1]
+                
+        #         neuer_punkt = anfang
+        #         for j in range(abs(delta_x)):
+        #             neuer_punkt[0] + j
+                    
+        #             neuer_punkt in batterien_x_y:
+        #                 neuer_punkt[1] + 1
+        #                 delta_y -= 1
+                        
+                
+        #         for j in range(delta_y):
+        #             neuer_punkt[]
+
+                
+                
+                
+
+        env = Environment(self.size, self.roboter,
+                          self.anzahl_batterien, self.batterien)
         env.step(0)
         pass
 
+    def findeFreienPlatz(self, punkt: tuple, distanz: int):
+        """ Diese Methode findet von dem gegebenen Punkt aus einen freien Platz, der innerhalb des Spielfelds ist
+            und auf dem sich keine Ersatzbatterie befindet.
+            Es wird versucht zuerst einen Schritt nach links zu gehen 
+        """
+        # TODO
+        # die x-Koordinate gibt den Abstand zum linken Rand des Spielfelds an
+        # die y-Koordinate gibt den Abstand zum rechten Rand an
+        size = self.size
+        dis_links, dis_oben = punkt-1
+        dis_rechts, dis_unten = size-dis_links, size-dis_oben
+
+        if dis_links < 2:
+            pass
+
+    def findeReihenfolgeSchritte(self, anfang, ende, punkte_meiden):
+        pass
+    
+    def findeWeg(self, x_start, y_start, x_ziel, y_ziel):
+        """ Findet einen Weg vom gegebenen Startpunkt zum gegebenen Zielpunkt.
+            Zu beachten ist dabei, dass der Weg nicht auf der Liste der Batterien liegt.
+            Die Methode gibt eine Liste mit einer Reihe von Schritten zurück.
+        """
+        delta_x = x_ziel - x_start
+        delta_y = y_ziel - y_start
+        
+        # wir benötigen die x- und y-Koordinaten aller Batterien
+        batterien_x_y = [batterie[0:2] for batterie in self.batterien]
+        
+        potenzielle_hindernisse = batterien_x_y.copy()
+        # alle Batterien auf einem möglichen Weg werden herausgewählt
+        for batterie in batterien_x_y:
+            x_batt, y_batt = batterie
+            delta_x_batterie = x_batt - x_start
+            delta_y_batterie = y_batt - y_start
+            
+            if delta_x_batterie <= delta_x and delta_y_batterie <= delta_y:
+                # Batterie liegt auf einem möglichen Weg
+                potenzielle_hindernisse.append(potenzielle_hindernisse)
+        
+        graph = Graph()
+        
+        aktuelle_position =  [x_start, y_start]
+        # ein step ist entweder bei positivem Delta +1, bei negativem Delta -1
+        
+        if delta_y != 0:
+            step_y = int(delta_y/abs(delta_y))
+        else:
+            step_y = 1
+            
+        if delta_x != 0:
+            step_x = int(delta_x/abs(delta_x))   
+        else: 
+            step_x = 1
+            
+        # for-Schleife iteriert von y_start bis einschließliche y_ziel, mit step_y als Schritt (entweder +1 oder -1)
+        for i in range(y_start, y_ziel+step_y, step_y):
+            aktuelle_position[1] = i
+            
+            # analog zur for-Schleife für die y-Koordinate, diesmal in x-Richtung
+            for j in range(x_start, x_ziel+step_x, step_x):
+                aktuelle_position[0] = j
+                
+                if aktuelle_position not in potenzielle_hindernisse:
+                    # aktuelle_position kann als möglicher Punkt zum Durchqueren verwendet werden
+                    x_akt, y_akt = aktuelle_position
+                    nachbarn = []
+                    
+                    # Tuple damit die Punkte für die Datenstruktur des Graphen hashable sind
+                    unten = aktuelle_position.copy()
+                    unten[1] += 1
+                    unten = tuple(unten)
+                    
+                    links = aktuelle_position.copy()
+                    links[0] -= 1
+                    links = tuple(links)
+                    
+                    rechts = aktuelle_position.copy()
+                    rechts[0] += 1
+                    rechts = tuple(rechts)
+                    
+                    oben = aktuelle_position.copy()
+                    oben[1] -= 1                    
+                    oben = tuple(oben)
+                    # aktuelle Position ist ganz oben links
+                    # erreichbare Nachbarpunkte sind daher rechts und unten
+                    if y_akt == 0 and x_akt == 0:
+                        nachbarn.extend((rechts, unten))
+                        
+                    # aktuelle Position ist ganz oben rechts
+                    # erreichbare Nachbarpunkte sind unten und links
+                    elif y_akt == 0 and x_akt == self.size:                        
+                        nachbarn.extend((unten, links))
+
+                    # aktuelle Position ist ganz oben am Rand und in keiner Ecke
+                    # erreichbare Nachbarpunkte sind unten, links, rechts
+                    elif y_akt == 0:
+                        nachbarn.extend((unten, links, rechts))
+
+                    # aktuelle Position ist ganz unten rechts
+                    # erreichbare Nachbarpunkte sind oben und links
+                    elif y_akt == self.size and x_akt == self.size:
+                        nachbarn.extend((oben, links))
+                    
+                    # aktuelle Position ist ganz unten links
+                    # erreichbare Nachbarpunkte sind oben und rechts
+                    elif y_akt == self.size and x_akt == 0:
+                        nachbarn.extend((oben, rechts))
+                        
+                    # aktuelle Position ist ganz unten am Rand und in keiner Ecke
+                    # erreichbare Nachbarpunkte sind oben, rechts und links
+                    elif y_akt == self.size:
+                        nachbarn.extend((oben, rechts, links))
+                    
+                    # aktuelle Position ist ganz rechts am Rand und in keiner Ecke
+                    # erreichbare Nachbarpunkte sind oben, unten und links
+                    elif x_akt == self.size:
+                        nachbarn.extend((oben, unten, links))
+                        
+                    # aktuelle Position ist ganz links am Rand und in keiner Ecke
+                    # erreichbare Nachbarpunkte sind oben, unten und rechts
+                    elif x_akt == 0:
+                        nachbarn.extend((oben, unten, rechts))            
+                    
+                    # die aktuelle Position befindet sich nicht am Rand und auch in keiner Ecke 
+                    # erreichbare Nachbarpunkte sind oben, unten, rechts und unten
+                    else:
+                        nachbarn.extend((oben, unten, rechts, links))
+                
+                for punkt in nachbarn:
+                    graph.add_Kante(
+                        tuple(aktuelle_position), punkt, 1)
+                        
+        kürzester_weg, länge = self.astar3((x_start, y_start), (x_ziel, y_ziel), graph)
+        abfolge_schritten = []
+        
+        for index in range(len(kürzester_weg)):
+            if index>0:
+                p1 = kürzester_weg[index-1]
+                p2 = kürzester_weg[index]
+                delta_x = p2[0] - p1[0]
+                delta_y = p2[1] - p1[1]
+                
+                # nach rechts
+                if delta_x > 0:
+                    bewegung = 3
+                
+                # nach links
+                elif delta_x < 0:
+                    bewegung = 2
+                
+                # nach unten
+                elif delta_y > 0:
+                    bewegung = 1
+                
+                # nach oben
+                elif delta_y < 0:
+                    bewegung = 0
+                
+                abfolge_schritten.append(bewegung)
+               
+        print(f"> Weg von {(x_start, y_start)} zu {(x_ziel, y_ziel)} bei > Abfolge von Schritten: {abfolge_schritten}")     
+        return abfolge_schritten
+            
+                
+
+        """
+        while delta_x != 0 and delta_y != 0:
+            
+            if delta_x > 0:
+                nächste_position = aktuelle_position[0] + (delta_x / len(delta_x))
+                
+                if nächste_position not in batterien_x_y:
+                    # Schritt in x-Richtung ist möglich
+                    aktuelle_position = nächste_position
+                    delta_x -= 1        
+            
+            if delta_y > 0:
+                nächste_position = aktuelle_position[1] + (delta_y / len(delta_y))
+                
+                if nächste_position not in batterien_x_y:
+                    pass
+        """
+    
+    def astar3(self, start, ziel, graph):
+        # https://rosettacode.org/wiki/A*_search_algorithm#Python
+
+        # Tatsächliche Kosten zu jedem Knoten vom Startknoten aus
+        G = {}
+
+        # Geschätze Kosten vom Start zum Ende über die Knoten
+        F = {}
+
+        # Initialisierung der Startwerte
+        G[start] = 0
+        F[start] = self.heuristisch(start, ziel)
+
+        geschlossene_knoten = set()
+        offene_knoten = set([start])
+        gekommen_von = {}
+
+        while len(offene_knoten) > 0:
+            # Wähle die Knoten von der offenen Liste aus, die den geringsten F-Wert besitzen
+            aktueller_knoten = None
+            aktueller_F_wert = None
+
+            for knoten in offene_knoten:
+                if aktueller_knoten is None or F[knoten] < aktueller_F_wert:
+                    aktueller_F_wert = F[knoten]
+                    aktueller_knoten = knoten
+
+            # Überprüfe, ob der Zielknoten erreicht wurde
+            if aktueller_knoten == ziel:
+                # die Route rückwärts gehen
+                pfad = [aktueller_knoten]
+                while aktueller_knoten in gekommen_von:
+                    aktueller_knoten = gekommen_von[aktueller_knoten]
+                    pfad.append(aktueller_knoten)
+                pfad.reverse()
+                return pfad, F[ziel]  # Fertig!
+
+            # Markiere den aktuellen Knoten als geschlossen
+            offene_knoten.remove(aktueller_knoten)
+            geschlossene_knoten.add(aktueller_knoten)
+
+            # Aktualisierung der Werte für die Knoten neben dem aktuellen Knoten
+
+            for item in graph[aktueller_knoten]:
+                nachbar_knoten, gewichtung = item[0]
+                
+                if nachbar_knoten in geschlossene_knoten:
+                    # dieser Knoten wurde bereits ausgeschöpft
+                    continue
+                kandidatG = G[aktueller_knoten] + gewichtung
+
+                if nachbar_knoten not in offene_knoten:
+                    offene_knoten.add(nachbar_knoten)
+                elif kandidatG >= G[nachbar_knoten]:
+                    # This G-Wert ist schlechter als der vorher gefundene
+                    continue
+
+                # Passe den G-Wert an
+                gekommen_von[nachbar_knoten] = aktueller_knoten
+                G[nachbar_knoten] = kandidatG
+                # Abstand zum Zielknoten wird geschätzt
+                H = self.heuristisch(nachbar_knoten, ziel)
+                F[nachbar_knoten] = G[nachbar_knoten] + H
+
+        raise RuntimeError("A* hat keine Lösung gefunden")
+         
+    
+    def heuristisch(self, knoten1, knoten2):
+        """ Methode als heuristische Funktion im A*-Algorithmus
+            TODO wird das verwendet? 
+            TODO Es wird der euklidische Abstand (Luftlinie) zwischen den beiden gegebenen Knoten berechnet
+        """
+        # Methode berechne Länge wird verwendet
+        return self.manhattanDistanz(*knoten1, *knoten2)
+
+    
     def dfs(self, graph, aktueller_knoten, alte_ladung, a_alte_ladung, aktuelle_ladung_batterien, pfad=[]):
         """
             TODO
@@ -304,10 +605,11 @@ class Steuerung:
             #     # return pfad
             #     #return pfad
             else:
+                pass
                 # return pfad
-                if len(restliche_batterien) == 1 and aktueller_knoten == restliche_batterien[0]:
-                    print("YESSS")
-                    return pfad
+                # if len(restliche_batterien) == 1 and aktueller_knoten == restliche_batterien[0]:
+                #     print("YESSS")
+                #     return pfad
 
         # else:
         #     return pfad
@@ -434,13 +736,15 @@ class Graph:
             for item in ursprüngliche_nachfolger_items:
                 self.delete_Kante(knoten, item)
 
+
 UNIT = 40
+
 
 class Environment(tk.Tk, object):
 
     def __init__(self, size: int, roboter: tuple, anzahl_batterien: int, batterien: list):
         """ erstellt eine Umgebung mit der gegebenen Eingabe """
-   
+
         super(Environment, self).__init__()
         # Ausgangszustand wird gespeichert, damit die Umgebung wieder zurückgesetzt werden kann
         self.roboter_start = roboter
@@ -564,7 +868,8 @@ class Environment(tk.Tk, object):
         # Tkinter Fenster wird geschlossen
         self.canvas.destroy()
         # Ausgangszustand wird wiederhergestellt
-        self.__init__(self.size, self.roboter_start, self.anzahl_batterien, self.batterien_start)
+        self.__init__(self.size, self.roboter_start,
+                      self.anzahl_batterien, self.batterien_start)
         self._build_stromrallye()
 
         (x_robo, y_robo, ladung_roboter) = list(self.roboter.keys())[0]
@@ -588,10 +893,10 @@ class Environment(tk.Tk, object):
 
         # speichert den auszuführenden Vorgang
         #base_action = np.array([0, 0])
-        (x_robo, y_robo, ladung_roboter), id_liste = list(self.roboter.items())[0]
+        (x_robo, y_robo, ladung_roboter), id_liste = list(
+            self.roboter.items())[0]
         self.roboter.pop((x_robo, y_robo, ladung_roboter))
 
-    
         # wenn die Ladung für einen Schritt ausreicht
         # TODO:
         # Roboter an Wand und kann sich nicht mehr weiter bewegen +
@@ -632,13 +937,13 @@ class Environment(tk.Tk, object):
 
         if ladung_roboter > 0:
             if against_wall:
-                # reward += REWARD_WALL            
+                # reward += REWARD_WALL
                 pass
             else:
                 # Schritt ist möglich
                 # positiver Reward und Ladung der Bordbatterie -1
                 # reward += REWARD_STEP
-                ladung_roboter -= 1                              
+                ladung_roboter -= 1
 
             done = False
 
@@ -648,17 +953,16 @@ class Environment(tk.Tk, object):
             done = True
 
         if max([ladung[2] for ladung in self.batterien.keys()]) == 0 and ladung_roboter == 0:
-            print("Max Ladung Batterien", max([ladung[2] for ladung in self.batterien.keys()]))
+            print("Max Ladung Batterien", max(
+                [ladung[2] for ladung in self.batterien.keys()]))
             # höchste Ladung der Ersatzbatterien ist 0 und die Ladung des Roboters ist auf 0
             # Spiel fertig gelöst
-            # reward += REWARD_FINISH   
-            done = True 
-    
-        
+            # reward += REWARD_FINISH
+            done = True
 
         # Aktualisierung der Klassenvariable
         self.roboter[(x_robo, y_robo, ladung_roboter)] = id_liste
-        #self._update_gui()
+        # self._update_gui()
 
         # Überprüfung, ob sich der Roboter jetzt auf einem Feld mit einer Ersatzbatterie befindet
         for koordinaten, ladung_batterie in zip([koordinaten[0:2] for koordinaten in self.batterien.keys()], [ladung[2] for ladung in self.batterien.keys()]):
@@ -667,17 +971,17 @@ class Environment(tk.Tk, object):
                     (x_robo, y_robo, ladung_batterie))
                 self.roboter[(x_robo, y_robo, ladung_batterie)] = self.roboter.pop(
                     (x_robo, y_robo, ladung_roboter))
-        
+
         self._update_gui()
 
         new_state = np.array([
             (x_robo, y_robo, ladung_roboter),
             (list(self.batterien.keys()))
         ])
-        print(f">> Neuer State: {new_state} >> Reward: {reward} >> Fertig? {done}" )
+        print(
+            f">> Neuer State: {new_state} >> Reward: {reward} >> Fertig? {done}")
         print("Size: ", new_state.shape)
         return new_state, reward, done
-
 
 
 if __name__ == '__main__':
@@ -689,8 +993,8 @@ if __name__ == '__main__':
     1,2,2
     5,4,3
     """.split()
-    
-    eingabe2= """ 
+
+    eingabe2 = """ 
     10
     1,1,1
     99
@@ -794,8 +1098,8 @@ if __name__ == '__main__':
     10,9,1
     10,10,1
     """.split()
-    
-    eingabe3="""
+
+    eingabe3 = """
     11
     6,6,2
     120
@@ -920,17 +1224,11 @@ if __name__ == '__main__':
     11,10,2
     11,11,2
     """.split()
-    
-    
+
     eingabe5 = """
     20
     10,15,20
-    34
-    14,15,10
-    18,15,4
-    18,18,2
-    18,20,10
-    14,9,2
+    29
     5,7,2
     5,5,2
     5,3,2
@@ -961,7 +1259,12 @@ if __name__ == '__main__':
     4,18,1
     4,19,1
     """.split()
-    
+
+    eingabe4 = """
+    100
+    40,25,20
+    0
+    """.split()
     size = 5
     roboter = (3, 5, 9)
     anzahl_batterien = 3
