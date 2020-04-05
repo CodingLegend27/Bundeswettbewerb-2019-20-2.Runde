@@ -3,7 +3,7 @@ from collections import defaultdict
 import copy
 import numpy as np
 import time
-
+import timeit
 
 import sys
 import random
@@ -55,6 +55,8 @@ class Steuerung:
 
         # die Ladung wird durch die Ziffern vom zweiten Komma bis zum Ende dargestellt
         ladung = int(eingabe[ind_komma_2 + 1:])
+        # TODO u know
+        # ladung = 1
 
         # Ein Tuple aus x, y und Ladung wird zurückgegeben
         return (x, y, ladung)
@@ -172,7 +174,7 @@ class Steuerung:
                 x_ende, y_ende = erreichbare_batterie[:2]
 
                 schritte = self.findeWeg(x_start, y_start, x_ende, y_ende)
-                
+
                 # falls ein Weg von Start- zu Zielpunkt überhaupt existiert
                 # erst dann wird diese Kante aus Start- und Zielpunkt zum Graphen hinzugefügt
                 if schritte:
@@ -180,7 +182,7 @@ class Steuerung:
                     verbrauchte_ladung = self.manhattanDistanz(
                         x_start, y_start, x_ende, y_ende)
                     self.graph.add_Kante((x_start, y_start),
-                                        (x_ende, y_ende), verbrauchte_ladung)
+                                         (x_ende, y_ende), verbrauchte_ladung)
 
             # falls die Ladung der Batterie der aktuellen Batterie gerade ist, kann sie ihre Ladung auf 0 setzen
             # und zu ihrem Ursprungsort zurückkehren
@@ -192,15 +194,15 @@ class Steuerung:
         for erreichbare_batterie in roboter_erreichbare_batterien:
             x_start, y_start = self.roboter[:2]
             x_ende, y_ende = erreichbare_batterie[:2]
-            
+
             schritte = self.findeWeg(x_start, y_start, x_ende, y_ende)
-            
+
             # falls überhaupt ein Weg existiert
-            if schritte:                
+            if schritte:
                 verbrauchte_ladung = self.manhattanDistanz(
                     x_start, y_start, x_ende, y_ende)
                 self.graph.add_Kante((x_start, y_start),
-                                    (x_ende, y_ende), verbrauchte_ladung)
+                                     (x_ende, y_ende), verbrauchte_ladung)
 
         aktuelle_ladung_batterien = defaultdict(list)
         for batterie in self.batterien:
@@ -211,8 +213,7 @@ class Steuerung:
 
         #längster_pfad = self.bfs(self.graph, (self.roboter[:2]), self.roboter[2], aktuelle_ladung_batterien, self.batterien)
 
-
-        längster_pfad = self.dfs(
+        längster_pfad, restliche_ladung = self.dfs(
             graph=self.graph,
             aktueller_knoten=self.roboter[:2],
             alte_ladung=0,
@@ -223,41 +224,100 @@ class Steuerung:
 
         abfolge_schritte = []
         for i in range(len(längster_pfad)):
-            if i>0:
+            if i > 0:
                 p1 = längster_pfad[i-1]
                 p2 = längster_pfad[i]
-                
+
                 schritte = self.findeWeg(*p1, *p2)
                 abfolge_schritte.extend(schritte)
-                
 
         # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt
         batterien_x_y = list(
             map(lambda batterie: batterie[:2], self.batterien))
-        
+
+        # zu der Abfolge der Schritten kommen noch diejenigen Schritte hinzu,
+        # die benötigt werden, um die restliche Ladung zu entladen, die der Roboter zum Schluss noch besitzt
+        if restliche_ladung > 0:
+            letzte_position = längster_pfad[-1]
+            nachbarn1 = self.findeFreieNachbarpunkte(
+                *letzte_position, batterien_x_y)
+
+            # Prüfen, ob eine Zahl in der Liste ist
+            if any(isinstance(item, int) for item in nachbarn1):
+                erster_nachbar = nachbarn1.sort(
+                    key=lambda x: (x is None, x))[0]
+                nachbarn2 = self.findeFreieNachbarpunkte(
+                    *erster_nachbar, batterien_x_y)
+                if any(isinstance(item, int) for item in nachbarn2):
+                    zweiter_nachbar = nachbarn2.sort(
+                        key=lambda x: (x is None, x))[0]
+
+                    # Schritt von letzter Position zum ersten Nachbarn
+                    von_letzter_pos_zu_nachbar1 = self.findeWeg(
+                        *letzte_position, *erster_nachbar)[0]
+
+                    # Schritt vom ersten Nachbarn zum zweiten Nachbarn
+                    von_nachbar1_zu_nachbar2 = self.findeWeg(
+                        *erster_nachbar, *zweiter_nachbar)[0]
+
+                    # Schritt vom zweiten Nachbarn zum ersten
+                    von_nachbar2_zu_nachbar1 = self.findeWeg(
+                        *zweiter_nachbar, *erster_nachbar)[0]
+
+                    abfolge_schritte.append(von_letzter_pos_zu_nachbar1)
+                    restliche_ladung -= 1
+                    aktuelle_position = erster_nachbar
+
+                    # Solange der Roboter noch Ladung besitzt,
+                    # geht dieser immer vom ersten Nachbarn zum zweiten und wieder zurück
+                    # Er geht sozusagen immer hin und her
+                    while restliche_ladung > 0:
+
+                        # wenn sich der Roboter gerade auf dem Feld des ersten Nachbarn befindet
+                        # so geht er vom ersten zum zweiten Nachbarn
+                        if aktuelle_position == erster_nachbar:
+                            abfolge_schritte.append(von_nachbar1_zu_nachbar2)
+                            aktuelle_position = zweiter_nachbar
+
+                        # wenn sich der Roboter gerade auf dem Feld des zweiten Nachbarn befindet
+                        # so geht er vom zweiten wieder zum ersten Nachbarn
+                        else:
+                            abfolge_schritte.append(von_nachbar2_zu_nachbar1)
+                            aktuelle_position = erster_nachbar
+
+                        restliche_ladung -= 1
+            # TODO Beispiel2
+
+            else:
+                if restliche_ladung == 1:
+
+                    # Wenn am oberen Rand (also y-Koordinate gleich 1)
+                    # Schritt nach unten
+                    if letzte_position[1] == 1:
+                        abfolge_schritte.append(1)
+
+                    # sonst Schritt nach oben
+                    else:
+                        abfolge_schritte.append(0)
+
         # for i in range(len(längster_pfad)):
         #     if i > 0:
         #         anfang = längster_pfad[i-1]
         #         ende = längster_pfad[i]
-                
+
         #         delta_x = ende[0] - anfang[0]
         #         delta_y = ende[1] - anfang[1]
-                
+
         #         neuer_punkt = anfang
         #         for j in range(abs(delta_x)):
         #             neuer_punkt[0] + j
-                    
+
         #             neuer_punkt in batterien_x_y:
         #                 neuer_punkt[1] + 1
         #                 delta_y -= 1
-                        
-                
+
         #         for j in range(delta_y):
         #             neuer_punkt[]
-
-                
-                
-                
 
         env = Environment(self.size, self.roboter,
                           self.anzahl_batterien, self.batterien)
@@ -283,7 +343,7 @@ class Steuerung:
 
     def findeReihenfolgeSchritte(self, anfang, ende, punkte_meiden):
         pass
-    
+
     def findeWeg(self, x_start, y_start, x_ziel, y_ziel):
         """ Findet einen Weg vom gegebenen Startpunkt zum gegebenen Zielpunkt.
             Zu beachten ist dabei, dass der Weg nicht auf der Liste der Batterien liegt.
@@ -291,173 +351,98 @@ class Steuerung:
         """
         delta_x = x_ziel - x_start
         delta_y = y_ziel - y_start
-        
+
         # wir benötigen die x- und y-Koordinaten aller Batterien
         batterien_x_y = [batterie[0:2] for batterie in self.batterien]
-        
+
         potenzielle_hindernisse = batterien_x_y.copy()
         # alle Batterien auf einem möglichen Weg werden herausgewählt
         for batterie in batterien_x_y:
             x_batt, y_batt = batterie
             delta_x_batterie = x_batt - x_start
             delta_y_batterie = y_batt - y_start
-            
+
             if delta_x_batterie <= delta_x and delta_y_batterie <= delta_y:
                 # Batterie liegt auf einem möglichen Weg
                 potenzielle_hindernisse.append(potenzielle_hindernisse)
-        
-        
+
         # Start- und Zielpunkt sollen im nachfolgenden Algorithmus nicht als potenzielles Hindernis gespeichert werden
         # da der Algorithmus sonst keinen Weg finden würde, wenn beispielsweise der Zielpunkt in der Liste der potenziellen Hindernisse gespeichert wird
-        startpunkt, zielpunkt = (x_start, y_start), (x_ziel, y_ziel)        
+        startpunkt, zielpunkt = (x_start, y_start), (x_ziel, y_ziel)
         if startpunkt in potenzielle_hindernisse:
             potenzielle_hindernisse.remove(startpunkt)
         if zielpunkt in potenzielle_hindernisse:
             potenzielle_hindernisse.remove(zielpunkt)
-        
-             
+
         graph = Graph()
-        
-        aktuelle_position =  [x_start, y_start]
+
+        aktuelle_position = [x_start, y_start]
         # ein step ist entweder bei positivem Delta +1, bei negativem Delta -1
-        
+
         if delta_y != 0:
             step_y = int(delta_y/abs(delta_y))
         else:
             step_y = 1
-            
+
         if delta_x != 0:
-            step_x = int(delta_x/abs(delta_x))   
-        else: 
+            step_x = int(delta_x/abs(delta_x))
+        else:
             step_x = 1
-            
+
         # for-Schleife iteriert von y_start bis einschließliche y_ziel, mit step_y als Schritt (entweder +1 oder -1)
         for i in range(y_start, y_ziel+step_y, step_y):
             aktuelle_position[1] = i
-            
+
             # analog zur for-Schleife für die y-Koordinate, diesmal in x-Richtung
             for j in range(x_start, x_ziel+step_x, step_x):
                 aktuelle_position[0] = j
-                
-                # TODO batterien x y
-                if aktuelle_position not in batterien_x_y:
-                    # aktuelle_position kann als möglicher Punkt zum Durchqueren verwendet werden
-                    x_akt, y_akt = aktuelle_position
-                    nachbarn = []
-                    
-                    # Tuple damit die Punkte für die Datenstruktur des Graphen hashable sind
-                    unten = aktuelle_position.copy()
-                    unten[1] += 1
-                    unten = tuple(unten)
-                    if unten in potenzielle_hindernisse:
-                        unten = None
-                        
-                    links = aktuelle_position.copy()
-                    links[0] -= 1
-                    links = tuple(links)
-                    if links in potenzielle_hindernisse:
-                        links = None
-                    
-                    rechts = aktuelle_position.copy()
-                    rechts[0] += 1
-                    rechts = tuple(rechts)
-                    if rechts in potenzielle_hindernisse:
-                        rechts = None
-                    
-                    oben = aktuelle_position.copy()
-                    oben[1] -= 1                    
-                    oben = tuple(oben)
-                    if oben in potenzielle_hindernisse:
-                        oben = None
-                    
-                    # aktuelle Position ist ganz oben links
-                    # erreichbare Nachbarpunkte sind daher rechts und unten
-                    if y_akt == 0 and x_akt == 0:
-                        nachbarn.extend((rechts, unten))
-                        
-                    # aktuelle Position ist ganz oben rechts
-                    # erreichbare Nachbarpunkte sind unten und links
-                    elif y_akt == 0 and x_akt == self.size:                        
-                        nachbarn.extend((unten, links))
 
-                    # aktuelle Position ist ganz oben am Rand und in keiner Ecke
-                    # erreichbare Nachbarpunkte sind unten, links, rechts
-                    elif y_akt == 0:
-                        nachbarn.extend((unten, links, rechts))
+                nachbarn = self.findeFreieNachbarpunkte(
+                    *aktuelle_position, potenzielle_hindernisse)
 
-                    # aktuelle Position ist ganz unten rechts
-                    # erreichbare Nachbarpunkte sind oben und links
-                    elif y_akt == self.size and x_akt == self.size:
-                        nachbarn.extend((oben, links))
-                    
-                    # aktuelle Position ist ganz unten links
-                    # erreichbare Nachbarpunkte sind oben und rechts
-                    elif y_akt == self.size and x_akt == 0:
-                        nachbarn.extend((oben, rechts))
-                        
-                    # aktuelle Position ist ganz unten am Rand und in keiner Ecke
-                    # erreichbare Nachbarpunkte sind oben, rechts und links
-                    elif y_akt == self.size:
-                        nachbarn.extend((oben, rechts, links))
-                    
-                    # aktuelle Position ist ganz rechts am Rand und in keiner Ecke
-                    # erreichbare Nachbarpunkte sind oben, unten und links
-                    elif x_akt == self.size:
-                        nachbarn.extend((oben, unten, links))
-                        
-                    # aktuelle Position ist ganz links am Rand und in keiner Ecke
-                    # erreichbare Nachbarpunkte sind oben, unten und rechts
-                    elif x_akt == 0:
-                        nachbarn.extend((oben, unten, rechts))            
-                    
-                    # die aktuelle Position befindet sich nicht am Rand und auch in keiner Ecke 
-                    # erreichbare Nachbarpunkte sind oben, unten, rechts und unten
-                    else:
-                        nachbarn.extend((oben, unten, rechts, links))
-                
                 for punkt in nachbarn:
+                    # falls punkt nicht NoneType ist
                     if punkt:
                         graph.add_Kante(
                             tuple(aktuelle_position), punkt, 1)
-                    
+
         return_item = self.astar3((x_start, y_start), (x_ziel, y_ziel), graph)
 
         # falls überhaupt ein Weg gefunden wurde
         if return_item:
             kürzester_weg, länge = return_item
             abfolge_schritten = []
-            
+
             for index in range(len(kürzester_weg)):
-                if index>0:
+                if index > 0:
                     p1 = kürzester_weg[index-1]
                     p2 = kürzester_weg[index]
                     delta_x = p2[0] - p1[0]
                     delta_y = p2[1] - p1[1]
-                    
+
                     # nach rechts
                     if delta_x > 0:
                         bewegung = 3
-                    
+
                     # nach links
                     elif delta_x < 0:
                         bewegung = 2
-                    
+
                     # nach unten
                     elif delta_y > 0:
                         bewegung = 1
-                    
+
                     # nach oben
                     elif delta_y < 0:
                         bewegung = 0
-                    
+
                     abfolge_schritten.append(bewegung)
-                
-            print(f"> Weg von {(x_start, y_start)} zu {(x_ziel, y_ziel)} bei > Abfolge von Schritten: {abfolge_schritten}")     
+
+            print(
+                f"> Weg von {(x_start, y_start)} zu {(x_ziel, y_ziel)} bei > Abfolge von Schritten: {abfolge_schritten}")
             return abfolge_schritten
         else:
             return None
-    
-                
 
         """
         while delta_x != 0 and delta_y != 0:
@@ -476,7 +461,96 @@ class Steuerung:
                 if nächste_position not in batterien_x_y:
                     pass
         """
-    
+
+    def findeFreieNachbarpunkte(self, x, y, potenzielle_hindernisse):
+        """ Findet von den gegebenen x- und y-Koordinaten alle erreichbare Nachbarpunkte,
+            welcher nicht als potenzielles Hindernis gespeichert ist
+            Return liste mit erreichbaren Nachbarpunkten             
+        """
+        aktuelle_position = [x, y]
+
+        if aktuelle_position not in potenzielle_hindernisse:
+            # aktuelle_position kann als möglicher Punkt zum Durchqueren verwendet werden
+            x_akt, y_akt = aktuelle_position
+            nachbarn = []
+
+            # Tuple wird verwendet, damit die Punkte für die Datenstruktur des Graphen hashable sind.
+
+            # Dabei wird die Liste der aktuellen Position kopiert,
+            # damit sich die Liste des jeweiligen Nachbarpunktes (z.B. unten) bei Veränderung von der aktuellen Position nicht verändert.
+            unten = aktuelle_position.copy()
+            unten[1] += 1
+            unten = tuple(unten)
+            if unten in potenzielle_hindernisse:
+                unten = None
+
+            links = aktuelle_position.copy()
+            links[0] -= 1
+            links = tuple(links)
+            if links in potenzielle_hindernisse:
+                links = None
+
+            rechts = aktuelle_position.copy()
+            rechts[0] += 1
+            rechts = tuple(rechts)
+            if rechts in potenzielle_hindernisse:
+                rechts = None
+
+            oben = aktuelle_position.copy()
+            oben[1] -= 1
+            oben = tuple(oben)
+            if oben in potenzielle_hindernisse:
+                oben = None
+
+            # In dieser Aufgabe ist die minimale Koordinate 1 und die maximale die Größe des Spielfelds
+
+            # aktuelle Position ist ganz oben links
+            # erreichbare Nachbarpunkte sind daher rechts und unten
+            if y_akt == 1 and x_akt == 1:
+                nachbarn.extend((rechts, unten))
+
+            # aktuelle Position ist ganz oben rechts
+            # erreichbare Nachbarpunkte sind unten und links
+            elif y_akt == 1 and x_akt == self.size:
+                nachbarn.extend((unten, links))
+
+            # aktuelle Position ist ganz oben am Rand und in keiner Ecke
+            # erreichbare Nachbarpunkte sind unten, links, rechts
+            elif y_akt == 1:
+                nachbarn.extend((unten, links, rechts))
+
+            # aktuelle Position ist ganz unten rechts
+            # erreichbare Nachbarpunkte sind oben und links
+            elif y_akt == self.size and x_akt == self.size:
+                nachbarn.extend((oben, links))
+
+            # aktuelle Position ist ganz unten links
+            # erreichbare Nachbarpunkte sind oben und rechts
+            elif y_akt == self.size and x_akt == 1:
+                nachbarn.extend((oben, rechts))
+
+            # aktuelle Position ist ganz unten am Rand und in keiner Ecke
+            # erreichbare Nachbarpunkte sind oben, rechts und links
+            elif y_akt == self.size:
+                nachbarn.extend((oben, rechts, links))
+
+            # aktuelle Position ist ganz rechts am Rand und in keiner Ecke
+            # erreichbare Nachbarpunkte sind oben, unten und links
+            elif x_akt == self.size:
+                nachbarn.extend((oben, unten, links))
+
+            # aktuelle Position ist ganz links am Rand und in keiner Ecke
+            # erreichbare Nachbarpunkte sind oben, unten und rechts
+            elif x_akt == 0:
+                nachbarn.extend((oben, unten, rechts))
+
+            # die aktuelle Position befindet sich nicht am Rand und auch in keiner Ecke
+            # erreichbare Nachbarpunkte sind oben, unten, rechts und unten
+            else:
+                nachbarn.extend((oben, unten, rechts, links))
+
+            return nachbarn
+
     def astar3(self, start, ziel, graph):
         # https://rosettacode.org/wiki/A*_search_algorithm#Python
 
@@ -522,7 +596,7 @@ class Steuerung:
 
             for item in graph[aktueller_knoten]:
                 nachbar_knoten, gewichtung = item[0]
-                
+
                 if nachbar_knoten in geschlossene_knoten:
                     # dieser Knoten wurde bereits ausgeschöpft
                     continue
@@ -544,8 +618,7 @@ class Steuerung:
         return None
         # Errormeldung
         #raise RuntimeError("A* hat keine Lösung gefunden")
-         
-    
+
     def heuristisch(self, knoten1, knoten2):
         """ Methode als heuristische Funktion im A*-Algorithmus
             TODO wird das verwendet? 
@@ -554,14 +627,13 @@ class Steuerung:
         # Methode berechne Länge wird verwendet
         return self.manhattanDistanz(*knoten1, *knoten2)
 
-    
     def dfs(self, graph, aktueller_knoten, alte_ladung, a_alte_ladung, aktuelle_ladung_batterien, pfad=[]):
         """
             TODO
         """
 
         pfad.append(aktueller_knoten)
-        print("Neuer Pfad: ", pfad)
+        #print("Neuer Pfad: ", pfad)
 
         if len(pfad) > 1:
             # aktualisiere Nachbarknoten des vorherigen Knoten, da sich bei diesem die Ladung geändert hat
@@ -614,16 +686,16 @@ class Steuerung:
 
             aktuelle_ladung = aktuelle_ladung_batterien[aktueller_knoten]
 
-        
-        # if graph[aktueller_knoten]:                
-        # TODO 
-        # Hier jetzt dann noch die Ladung leer machen   
+        # if graph[aktueller_knoten]:
+        # TODO
+        # Hier jetzt dann noch die Ladung leer machen
         if len(restliche_batterien) == 1 and aktueller_knoten == restliche_batterien[0]:
             print("YESSS")
-            return pfad
+            return pfad, aktuelle_ladung
 
         # für benachbarte Knoten wird die DFS aufgerufen
-        for nachfolger_item in graph[aktueller_knoten]:
+        sortierte_liste_nachfolger = sorted(graph[aktueller_knoten], key=lambda item: self.anzahlErreichbarerBatterien(*item[0][0], item[0][1], self.batterien))
+        for nachfolger_item in sortierte_liste_nachfolger:
             knoten, gewichtung = nachfolger_item[0]
 
             # falls der Knoten noch nicht besucht wurde
@@ -632,16 +704,17 @@ class Steuerung:
                 # Ladungsverbrauch wird abgezogen
                 #aktuelle_ladung -= gewichtung
 
-                p = self.dfs(graph=copy.deepcopy(graph), aktueller_knoten=knoten,
-                             alte_ladung=(aktuelle_ladung-gewichtung),
-                             a_alte_ladung=alte_ladung,
-                             aktuelle_ladung_batterien=aktuelle_ladung_batterien,
-                             pfad=pfad.copy())
+                return_item = self.dfs(graph=copy.deepcopy(graph), aktueller_knoten=knoten,
+                                       alte_ladung=(
+                    aktuelle_ladung-gewichtung),
+                    a_alte_ladung=alte_ladung,
+                    aktuelle_ladung_batterien=aktuelle_ladung_batterien.copy(),
+                    pfad=pfad.copy())
 
                 # print("Pfad: ", p)
-
-                if p:
-                    return p
+                # return_item = (pfad, ladung)
+                if return_item:
+                    return return_item
                     # return p
 
             # # falls alle Batterien besucht wurden
@@ -654,8 +727,6 @@ class Steuerung:
                 # if len(restliche_batterien) == 1 and aktueller_knoten == restliche_batterien[0]:
                 #     print("YESSS")
                 #     return pfad
-
-        
 
     def bfs(self, graph, aktueller_knoten, aktuelle_ladung_roboter, aktuelle_ladung_batterien, restliche_batterien, aktueller_pfad=[]):
 
@@ -789,7 +860,7 @@ class Environment(tk.Tk, object):
         """ erstellt eine Umgebung mit der gegebenen Eingabe """
 
         super(Environment, self).__init__()
-        
+
         # Damit das Tk-Fenster im Vordergrund ist und bleibt
         self.attributes('-topmost', True)
         # Ausgangszustand wird gespeichert, damit die Umgebung wieder zurückgesetzt werden kann
@@ -998,13 +1069,13 @@ class Environment(tk.Tk, object):
             # reward += REWARD_FAILED
             done = True
 
-        if max([ladung[2] for ladung in self.batterien.keys()]) == 0 and ladung_roboter == 0:
-            print("Max Ladung Batterien", max(
-                [ladung[2] for ladung in self.batterien.keys()]))
-            # höchste Ladung der Ersatzbatterien ist 0 und die Ladung des Roboters ist auf 0
-            # Spiel fertig gelöst
-            # reward += REWARD_FINISH
-            done = True
+        # if max([ladung[2] for ladung in self.batterien.keys()]) == 0 and ladung_roboter == 0:
+        #     print("Max Ladung Batterien", max(
+        #         [ladung[2] for ladung in self.batterien.keys()]))
+        #     # höchste Ladung der Ersatzbatterien ist 0 und die Ladung des Roboters ist auf 0
+        #     # Spiel fertig gelöst
+        #     # reward += REWARD_FINISH
+        #     done = True
 
         # Aktualisierung der Klassenvariable
         self.roboter[(x_robo, y_robo, ladung_roboter)] = id_liste
@@ -1321,4 +1392,4 @@ if __name__ == '__main__':
         #(4, 3, 2)
     ]
 
-    s = Steuerung(eingabe2)
+    s = Steuerung(eingabe3)
