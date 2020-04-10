@@ -1,6 +1,6 @@
 # 2. Runde Bundeswettbewerb Informatik 2019/20
 # Autor: Christoph Waffler
-# Aufgabe 1: Stromrallye
+# Aufgabe 1: Stromrallye (Lösen)
 
 from collections import defaultdict
 import copy
@@ -231,17 +231,17 @@ class Berechnungen:
 
                         restliche_ladung -= 1
 
+    
+        if restliche_ladung == 1:
+
+            # Wenn am oberen Rand (also y-Koordinate gleich 1)
+            # Schritt nach unten
+            if letzte_position[1] == 1:
+                abfolge_schritte.append(1)
+
+            # sonst Schritt nach oben
             else:
-                if restliche_ladung == 1:
-
-                    # Wenn am oberen Rand (also y-Koordinate gleich 1)
-                    # Schritt nach unten
-                    if letzte_position[1] == 1:
-                        abfolge_schritte.append(1)
-
-                    # sonst Schritt nach oben
-                    else:
-                        abfolge_schritte.append(0)
+                abfolge_schritte.append(0)
         
         # Abfolge der Schritte wird von Zahlen zu deutschen Wörtern 'konvertiert'
         abfolge_schritte_deutsch = []
@@ -330,15 +330,15 @@ class Berechnungen:
             Returns:
                 int. Manhattan-Distanz zwischen P1 und P2
         
-        """
+        """    
         # Betrag der Differenzen der x- und y-Koordinaten
         delta_x = abs(x1 - x2)
         delta_y = abs(y1 - y2)
-            
+
         # Summe der Beträge wird gebildet
         distanz = delta_x + delta_y
         
-        return distanz
+        return distanz       
 
     def findeWeg(self, x_start, y_start, x_ziel, y_ziel):
         """ Methode zum Ermitteln der Abfolge der Schritte vom Start- zum Zielpunkt.
@@ -406,7 +406,7 @@ class Berechnungen:
         else:
             step_x = -1
 
-
+        
         # for-Schleife iteriert von y_start bis einschließliche y_ziel, mit step_y als Schritt (entweder +1 oder -1)
         for i in range(y_start, y_ziel + step_y, step_y):
             aktuelle_position[1] = i
@@ -415,8 +415,7 @@ class Berechnungen:
             for j in range(x_start, x_ziel + step_x, step_x):
                 aktuelle_position[0] = j
 
-                nachbarn = self.findeFreieNachbarpunkte(
-                    *aktuelle_position, batterien_x_y)
+                nachbarn = self.findeFreieNachbarpunkte(*aktuelle_position, batterien_x_y)
 
                 for punkt in nachbarn:
                     # falls punkt nicht NoneType ist
@@ -467,10 +466,6 @@ class Berechnungen:
             return None
 
     def findeFreieNachbarpunkte(self, x_akt, y_akt, potenzielle_hindernisse):
-        """ Findet von den gegebenen x- und y-Koordinaten alle erreichbare Nachbarpunkte,
-            welcher nicht als potenzielles Hindernis gespeichert ist
-            Return liste mit erreichbaren Nachbarpunkten             
-        """
         """ Methode zum Ermitteln freier nachbarpunkte.
         
         Diese prüft ob die Nachbarpunkte des gegebenen Punktes frei sind, d.h. dass dort keine Ersatzbatterien sind.
@@ -540,42 +535,42 @@ class Berechnungen:
             # erreichbare Nachbarpunkte sind daher rechts und unten
             if y_akt == 1 and x_akt == 1:
                 nachbarn.extend((rechts, unten))
-
+                
             # aktuelle Position ist ganz oben rechts (Eckpunkt)
             # erreichbare Nachbarpunkte sind unten und links
             elif y_akt == 1 and x_akt == self.size:
                 nachbarn.extend((unten, links))
-
+                
             # aktuelle Position ist ganz oben am Rand und in keiner Ecke
             # erreichbare Nachbarpunkte sind unten, links, rechts
             elif y_akt == 1:
                 nachbarn.extend((unten, links, rechts))
-
+                
             # aktuelle Position ist ganz unten rechts (Eckpunkt)
             # erreichbare Nachbarpunkte sind oben und links
             elif y_akt == self.size and x_akt == self.size:
                 nachbarn.extend((oben, links))
-
+                
             # aktuelle Position ist ganz unten links (Eckpunkt)
             # erreichbare Nachbarpunkte sind oben und rechts
             elif y_akt == self.size and x_akt == 1:
                 nachbarn.extend((oben, rechts))
-
+                                        
             # aktuelle Position ist ganz unten am Rand und in keiner Ecke
             # erreichbare Nachbarpunkte sind oben, rechts und links
             elif y_akt == self.size:
                 nachbarn.extend((oben, rechts, links))
-
+                
             # aktuelle Position ist ganz rechts am Rand und in keiner Ecke
             # erreichbare Nachbarpunkte sind oben, unten und links
             elif x_akt == self.size:
                 nachbarn.extend((oben, unten, links))
-
+            
             # aktuelle Position ist ganz links am Rand und in keiner Ecke
             # erreichbare Nachbarpunkte sind oben, unten und rechts
             elif x_akt == 1:
                 nachbarn.extend((oben, unten, rechts))
-
+                
             # die aktuelle Position befindet sich nicht am Rand und auch in keiner Ecke
             # erreichbare Nachbarpunkte sind oben, unten, rechts und unten
             else:
@@ -716,33 +711,52 @@ class Berechnungen:
             # die Ladung des vorvorletzten Elements muss aktualisiert werden
             alter_knoten = pfad[-2]
             
-            # Aktualisierung des Dictionary zum Speichern der aktuellen Ladungen
-            # die Ladung des vorvorletzten Elements wird auf a_alte_ladung gesetzt
-            aktuelle_ladung_batterien[alter_knoten] = a_alte_ladung
+            # bisherige Ladung des alten Knotens wird ermittelt
+            bisherige_ladung = aktuelle_ladung_batterien[alter_knoten]
+            
+            # nur wenn die 'neue' (a_alte_ladung) des alten Knotens sich von der bisherigen Ladung unterscheidet,
+            # ändern sich auch die erreichbaren anderen Ersatzbatterien von der aktuellen Position ausgehend
+            # und somit auch die Kinderknoten im Graphen
+            if a_alte_ladung != bisherige_ladung:
+                                
+                # Aktualisierung des Dictionary zum Speichern der aktuellen Ladungen
+                # die Ladung des vorvorletzten Elements wird auf a_alte_ladung gesetzt
+                aktuelle_ladung_batterien[alter_knoten] = a_alte_ladung
 
-            # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten der Batterien des Dictionary aktuelle_ladung_batterien benötigt,
-            # die aktuell eine Ladung > 0 besitzten
-            
-            # 1. Filtern der Batterien mit Ladung > 0
-            restliche_batterien = list(filter(
-                lambda batterie: batterie[1] > 0, list(aktuelle_ladung_batterien.items())
-            ))
-            
-            # 2. Nur die x- und y-Koordinaten werden benötigt
-            restliche_batterien = list( map(lambda batterie: batterie[0], restliche_batterien))
-            
-            # aufgrund der veränderten Ladung des Vorvorgängers werden nun seine erreichbaren Batterien neu ermittelt
-            erreichbare_batterien_neu = self.erreichbareBatterien(*alter_knoten, a_alte_ladung, restliche_batterien)
-            
-            # die Manhattan-Distanz wird berechnet und mithilfe der map()-Funktion als tuple mit der jeweiligen erreichbaren Batterie gespeichert
-            erreichbare_batterien_neu = list(map(
-                lambda batterie: (*batterie, self.manhattanDistanz(*batterie, *alter_knoten)), 
-                erreichbare_batterien_neu
-            ))
-            
-            # die Nachbarknoten der Vorvorgängers werden im Graphen aktualisiert
-            graph.aktualisiereNachfolger(alter_knoten, erreichbare_batterien_neu)
-
+                # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten der Batterien des Dictionary aktuelle_ladung_batterien benötigt,
+                # die aktuell eine Ladung > 0 besitzten
+                
+                # 1. Filtern der Batterien mit Ladung > 0
+                restliche_batterien = list(filter(
+                    lambda batterie: batterie[1] > 0, list(aktuelle_ladung_batterien.items())
+                ))
+                
+                # 2. Nur die x- und y-Koordinaten werden benötigt
+                restliche_batterien = list( map(lambda batterie: batterie[0], restliche_batterien))
+                
+                # aufgrund der veränderten Ladung des Vorvorgängers werden nun seine erreichbaren Batterien neu ermittelt
+                erreichbare_batterien_neu = self.erreichbareBatterien(*alter_knoten, a_alte_ladung, restliche_batterien)
+                
+                # die Manhattan-Distanz wird berechnet und mithilfe der map()-Funktion als tuple mit der jeweiligen erreichbaren Batterie gespeichert
+                erreichbare_batterien_neu = list(map(
+                    lambda batterie: (*batterie, self.manhattanDistanz(*batterie, *alter_knoten)), 
+                    erreichbare_batterien_neu
+                ))
+                
+                # die Nachbarknoten der Vorvorgängers werden im Graphen aktualisiert
+                graph.aktualisiereNachfolger(alter_knoten, erreichbare_batterien_neu)
+                
+            else:
+                # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt, die aktuell eine Ladung > 0 besitzten
+                # 1. Filtern der Batterien mit Ladung > 0
+                restliche_batterien = list(filter(
+                    lambda batterie: batterie[1] > 0, list(
+                        aktuelle_ladung_batterien.items())
+                ))
+                # 2. Nur die x- und y-Koordinaten werden benötigt
+                restliche_batterien = list(
+                    map(lambda batterie: batterie[0], restliche_batterien))
+                
         else:
             # Da der Roboter sich am Anfang bewegt und sozusagen keine Ersatzbatterie 'hinterlässt',
             # wird die Postion aus dem Dictionary gelöscht,
@@ -871,12 +885,12 @@ class Berechnungen:
         Returns:
             float. euklidischen Abstand zwischen P1 und P2        
         """
-        
+
         delta_x = x2 - x1
         delta_y = y2 - y1
         distanz = math.sqrt(delta_x**2 + delta_y**2)
         return distanz
-    
+        
 
 class Graph:
     """ gerichteter Graph zum Verwalten von Knoten und Kanten mit Gewichtungen """
@@ -987,8 +1001,7 @@ class EingabeFenster(tk.Frame):
             text="Starte Berechnungen",
             command=self.starte)
         self.button_start.pack(side=tk.BOTTOM, fill=tk.BOTH)
-               
-
+         
     def starte(self):
         # die Eingabe des Nutzers wird aus dem Textfenster gelesen
         eingabe = self.textfeld.get('1.0', 'end').split()
@@ -1048,9 +1061,6 @@ class Environment(tk.Tk, object):
         
         # Stromrallye mit den Batterien und Roboter wird erstellt
         self._build_stromrallye()
-
-
-        
 
     def _build_stromrallye(self):
         """ in dieser Methode wird das Spielbrett auf Ausgangsstellung auf einer Zeichenfläche (Canvas) gezeichnet """
@@ -1206,10 +1216,7 @@ class Environment(tk.Tk, object):
                 # hoch: y-Koordinate -1
                 y_robo -= 1
             else:
-                against_wall = True
-                
-                if y_robo == 1:
-                    y_robo = self.size               
+                against_wall = True            
                                 
         # Schritt nach unten
         elif action == 1:
@@ -1218,9 +1225,6 @@ class Environment(tk.Tk, object):
                 y_robo += 1
             else:
                 against_wall = True
-                
-                if y_robo == self.size:
-                    y_robo = 1
 
         # Schritt nach links
         elif action == 2:
@@ -1229,9 +1233,6 @@ class Environment(tk.Tk, object):
                 x_robo -= 1
             else:
                 against_wall = True
-                
-                if x_robo == 1:
-                    x_robo = self.size
 
         # Schritt nach rechts
         elif action == 3:
@@ -1240,9 +1241,6 @@ class Environment(tk.Tk, object):
                 x_robo += 1
             else:
                 against_wall = True
-                
-                if x_robo == self.size:
-                    x_robo = 1
 
         if ladung_roboter > 0:
             if against_wall:
