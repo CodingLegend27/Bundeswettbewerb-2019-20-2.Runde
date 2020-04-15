@@ -14,19 +14,24 @@ class Berechnungen:
         self.startpunkt = self.zuPunkt(eingabe.pop(0))
         self.zielpunkt = self.zuPunkt(eingabe.pop(0))
 
-        self.liste_verbindungen = []
-        for verbindung in range(int(len(eingabe)/2)):
-            p1 = self.zuPunkt(eingabe.pop(0))
-            p2 = self.zuPunkt(eingabe.pop(0))
-            kante = (p1, p2)
-            self.liste_verbindungen.append(kante)
+        # self.liste_verbindungen = []
+        # for verbindung in range(self.anzahl_straßen):
+        #     p1 = self.zuPunkt(eingabe.pop(0))
+        #     p2 = self.zuPunkt(eingabe.pop(0))
+        #     kante = (p1, p2)
+        #     self.liste_verbindungen.append(kante)
+
+        self.liste_verbindungen = [
+            (self.zuPunkt(eingabe.pop(0)), self.zuPunkt(eingabe.pop(0)))
+            for i in range(self.anzahl_straßen)
+        ]
 
         self.main()
 
     def zuPunkt(self, eingabe: str):
-        """ verwertet die Eingabe zu einem Objekt der Klasse Punkt aufgebaut ist
+        """ verwertet die Eingabe aus ('x, y') aufgebaut ist
         z.B.: '(14,0)'
-        --> gibt einen Punkt als Tuple zurück"""
+        --> gibt einen Punkt als Tuple mit x- und y-Koordinate als zurück"""
         # zuerst wird die Stelle des Kommas bestimmt
         ind_komma = eingabe.find(',')
 
@@ -70,41 +75,40 @@ class Berechnungen:
         # TODO Code aktivieren
         # max_verlängerung = float(
         #     input("Maximale Verlängerung in Prozent: ")) / 100
-        max_verlängerung = 85/100
+        max_verlängerung = 15/100
         maximale_kosten = kosten_kürzester_weg + \
             kosten_kürzester_weg * max_verlängerung
 
         # TODO
         # Versuch mti allen Pfaden
         # alle _ Pfade
-        #self, graph, start, end, max_länge, path=[], akutelle_länge=0, paths=[]
-        alle_pfade = self.DFS2(self.graph, self.startpunkt, self.zielpunkt, maximale_kosten)
+        # self, graph, start, end, max_länge, path=[], akutelle_länge=0, paths=[]
+        alle_pfade = self.DFS2(self.graph, self.startpunkt,
+                               self.zielpunkt, maximale_kosten)
 
-        anzahl_abbiegen_alle_pfade = [self.berechneAnzahlAbbiegenPfad(pfad) for pfad in alle_pfade]
+        anzahl_abbiegen_alle_pfade = [
+            self.berechneAnzahlAbbiegenPfad(pfad) for pfad in alle_pfade]
         min_abbiegen = min(anzahl_abbiegen_alle_pfade)
-        
+
         # somit optimaler Pfad
         optimaler_pfad = alle_pfade[
             anzahl_abbiegen_alle_pfade.index(min_abbiegen)
         ]
         self.koordinatensystem.zeichnePfad(optimaler_pfad, 'g-', None)
-        
+
         kosten_optimaler_pfad = self.berechneLängePfad(optimaler_pfad)
-        
+
         umweg = kosten_optimaler_pfad - kosten_kürzester_weg
-        
-        
-        print("Optimaler Pfad: ", optimaler_pfad, f"--> {min_abbiegen} mal Abbiegen")
+
+        print("Optimaler Pfad: ", optimaler_pfad,
+              f"--> {min_abbiegen} mal Abbiegen")
         print("> Kosten für diesen Pfad: ", kosten_optimaler_pfad)
         print("> Umweg für diesen optimalen Weg im Vergleich zum Kürzesten: ", umweg)
-        print(">> Kosten Kürzester: ", kosten_kürzester_weg, "> maximale Kosten: ", maximale_kosten)
-        
+        print(">> Kosten Kürzester: ", kosten_kürzester_weg,
+              "> maximale Kosten: ", maximale_kosten)
+
         self.koordinatensystem.show()
         exit()
-
-
-
-
 
         # TODO !!!
         # Aussortierung der Knoten
@@ -205,12 +209,12 @@ class Berechnungen:
                 # nachfolger_knoten = node
                 node, gewichtung = nachfolger_item[0]
                 # akutelle_länge += gewichtung
-                #if akutelle_länge <= max_länge:
+                # if akutelle_länge <= max_länge:
                 if node not in path:
                     akutelle_länge += gewichtung
-                    self.DFS2(graph, node, end, max_länge, path, akutelle_länge, paths)
-    
-        
+                    self.DFS2(graph, node, end, max_länge,
+                              path, akutelle_länge, paths)
+
         return paths
 
     def find_all_paths(self, graph, start, end, path=[]):
@@ -230,8 +234,7 @@ class Berechnungen:
                     paths.append(newpath)
         print(paths)
         return paths
-    
-    
+
     def macheHyperkanten(self, mögliche_knoten: list, graph):
         # neue Kanten werden mit den möglichen Knoten erstellt
         # die neuen Kanten sollen 3 Knoten miteinander verbinden, sog. Hyperkanten (statt 2 Knoten)
@@ -671,7 +674,7 @@ class Koordinatensystem():
 
 
 if __name__ == '__main__':
-    eingabe1 = """
+    eingabe0 = """
     14
     (0,0)
     (4,3)
@@ -859,7 +862,161 @@ if __name__ == '__main__':
     (9,2) (9,3)
     """.split()
 
-    b = Berechnungen(eingabe2)
+    eingabe1 = """
+    148
+    (0,0)
+    (14,0)
+    (2,0) (4,1)
+    (1,3) (0,3)
+    (1,3) (3,4)
+    (0,1) (1,2)
+    (2,1) (1,0)
+    (5,2) (5,3)
+    (10,2) (10,3)
+    (14,2) (14,3)
+    (10,2) (11,3)
+    (4,1) (5,1)
+    (6,2) (7,4)
+    (11,2) (11,3)
+    (2,0) (3,0)
+    (4,1) (3,0)
+    (0,2) (1,3)
+    (2,2) (3,2)
+    (3,1) (1,0)
+    (8,1) (9,3)
+    (12,1) (13,3)
+    (0,0) (0,1)
+    (4,1) (4,0)
+    (4,1) (4,2)
+    (0,2) (0,1)
+    (2,2) (2,1)
+    (5,1) (4,0)
+    (2,0) (3,1)
+    (4,1) (3,1)
+    (5,1) (5,0)
+    (5,1) (5,2)
+    (3,2) (4,2)
+    (1,3) (0,1)
+    (5,1) (6,2)
+    (5,1) (7,2)
+    (7,1) (5,0)
+    (2,1) (4,2)
+    (6,1) (7,2)
+    (7,1) (6,0)
+    (4,0) (5,0)
+    (6,1) (8,2)
+    (7,1) (7,0)
+    (2,1) (3,1)
+    (5,0) (6,0)
+    (6,2) (7,2)
+    (7,0) (8,2)
+    (7,0) (8,0)
+    (7,2) (8,2)
+    (9,0) (10,2)
+    (10,0) (11,0)
+    (10,2) (11,2)
+    (7,0) (8,1)
+    (7,0) (9,1)
+    (11,2) (12,2)
+    (8,2) (8,1)
+    (8,0) (9,1)
+    (9,2) (8,1)
+    (12,0) (13,0)
+    (10,2) (8,1)
+    (9,0) (10,1)
+    (10,2) (9,1)
+    (13,0) (14,0)
+    (10,0) (10,1)
+    (10,2) (10,1)
+    (10,0) (11,1)
+    (11,2) (10,1)
+    (10,0) (12,1)
+    (12,2) (10,1)
+    (11,0) (12,1)
+    (11,0) (13,1)
+    (12,2) (12,1)
+    (12,0) (13,1)
+    (13,2) (12,1)
+    (12,0) (14,1)
+    (13,2) (13,1)
+    (13,0) (14,1)
+    (14,2) (13,1)
+    (14,0) (14,1)
+    (14,2) (14,1)
+    (10,1) (11,1)
+    (11,1) (12,1)
+    (12,1) (13,1)
+    (13,1) (14,1)
+    (12,3) (13,3)
+    (8,4) (9,4)
+    (13,3) (14,3)
+    (9,4) (10,4)
+    (12,3) (13,4)
+    (9,4) (8,3)
+    (12,3) (14,4)
+    (12,3) (11,3)
+    (13,3) (14,4)
+    (10,4) (9,3)
+    (11,4) (12,4)
+    (14,3) (14,4)
+    (11,4) (9,3)
+    (11,4) (10,3)
+    (8,4) (7,3)
+    (11,4) (11,3)
+    (9,4) (7,3)
+    (12,4) (11,3)
+    (9,3) (10,3)
+    (13,4) (14,4)
+    (8,4) (7,4)
+    (8,3) (7,3)
+    (6,3) (5,4)
+    (4,4) (5,4)
+    (6,3) (5,3)
+    (6,3) (7,4)
+    (5,4) (5,3)
+    (5,4) (3,3)
+    (6,4) (7,4)
+    (1,1) (2,3)
+    (4,4) (2,3)
+    (4,4) (3,4)
+    (4,3) (3,3)
+    (0,0) (1,1)
+    (2,2) (1,1)
+    (5,1) (6,3)
+    (1,2) (2,3)
+    (3,3) (2,3)
+    (2,4) (0,3)
+    (2,4) (3,4)
+    (4,1) (5,3)
+    (3,2) (4,3)
+    (0,0) (1,0)
+    (0,0) (1,2)
+    (2,0) (1,0)
+    (2,2) (3,3)
+    (2,3) (3,4)
+    (1,4) (0,4)
+    (1,4) (2,4)
+    (2,1) (1,1)
+    (6,2) (8,3)
+    (3,2) (5,3)
+    (7,2) (8,3)
+    (7,2) (9,3)
+    (11,2) (12,3)
+    (0,2) (0,3)
+    (1,4) (0,3)
+    (1,3) (2,4)
+    (6,2) (6,3)
+    (11,2) (13,3)
+    (10,2) (11,4)
+    (12,2) (13,3)
+    (4,2) (5,3)
+    (9,2) (9,3)
+    (13,2) (13,3)
+    (10,2) (9,3)
+    (13,2) (14,3)    
+    """.split()
+
+    b = Berechnungen(eingabe1)
 
     g = Graph()
 
