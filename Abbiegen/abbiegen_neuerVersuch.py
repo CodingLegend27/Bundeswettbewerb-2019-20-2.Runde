@@ -1,3 +1,9 @@
+#!/usr/bin/python
+
+# 2. Runde Bundeswettbewerb Informatik 2019/20
+# Autor: Christoph Waffler
+# Aufgabe 3: Abbiegen
+
 from collections import defaultdict, deque
 import math
 from queue import PriorityQueue
@@ -5,33 +11,58 @@ import heapq
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import numpy as np
+import time
+
+import sys
+# Import von Tkinter
+if sys.version_info.major == 2:
+    import Tkinter as tk
+    import Tkinter.scrolledtext as scrolledtext
+    from Tkinter import messagebox
+else:
+    import tkinter as tk
+    from tkinter import messagebox
+    import tkinter.scrolledtext as scrolledtext
 
 
 class Berechnungen:
-    def __init__(self, eingabe: list):
+    def __init__(self, eingabe: list, maximale_verlängerung: int, erweiterung_minAbbiegen: bool):
         # Zuweisung der Klassenvariablen durch die eingegebenen Daten
+        self.erweiterung_minAbbiegen = erweiterung_minAbbiegen
+
+        # Maximale Verlängerung wird festgelegt
+        self.maximale_verlängerung = maximale_verlängerung
+
+        # Anzahl der Straßen ist die erste Zahl der Eingabe
         self.anzahl_straßen = int(eingabe.pop(0))
+
+        # Startpunkt ist die zweite Zahl
         self.startpunkt = self.zuPunkt(eingabe.pop(0))
+
+        # Zielpunkt ist die dritte Zahl
         self.zielpunkt = self.zuPunkt(eingabe.pop(0))
 
-        # self.liste_verbindungen = []
-        # for verbindung in range(self.anzahl_straßen):
-        #     p1 = self.zuPunkt(eingabe.pop(0))
-        #     p2 = self.zuPunkt(eingabe.pop(0))
-        #     kante = (p1, p2)
-        #     self.liste_verbindungen.append(kante)
-
+        # alle Verbindungen zwischen zwei Kreuzungen hinzugefügt
         self.liste_verbindungen = [
             (self.zuPunkt(eingabe.pop(0)), self.zuPunkt(eingabe.pop(0)))
             for i in range(self.anzahl_straßen)
         ]
 
+        # Aufruf der Hauptmethode
         self.main()
 
     def zuPunkt(self, eingabe: str):
-        """ verwertet die Eingabe aus ('x, y') aufgebaut ist
-        z.B.: '(14,0)'
-        --> gibt einen Punkt als Tuple mit x- und y-Koordinate als zurück"""
+        """ Methode zur Formatierung einer Zeile aus der eingabe mit Strings
+        z.B.: '(14,0)' zu x=14, y=0
+
+
+        Args:
+            eingabe (str): String mit unformatierter Eingabe, Aufbau der Eingabe: '(x, y)'
+
+        Returns:
+            tuple. Ein Tuple mit den x- und y-Koordinaten der Kreuzung, die als int dargestellt sind.
+        """
+
         # zuerst wird die Stelle des Kommas bestimmt
         ind_komma = eingabe.find(',')
 
@@ -45,6 +76,9 @@ class Berechnungen:
     def main(self):
         """ Hauptmethode der Klasse und wird von __init__() aufgerufen """
 
+        # Zeitmessung wird gestartet
+        start_zeit = time.time()
+
         # ein Graph-Objekt wird erzeugt
         # dieser Graph besteht aus Kanten, welche wiederum aus zwei Knoten bestehen
         # die Länge einer Kante dient als Gewichtung
@@ -54,7 +88,7 @@ class Berechnungen:
             self.graph.add_Kante(*kante, strecke)
 
         # Initialisierung des Koordinatensystem zum Zeigen der Straßenkarte
-        self.koordinatensystem = Koordinatensystem()
+        self.koordinatensystem = Koordinatensystem(self.erweiterung_minAbbiegen)
         self.koordinatensystem.zeichneStraßenkarte(
             self.startpunkt,
             self.zielpunkt,
@@ -62,326 +96,309 @@ class Berechnungen:
             liste_verbindungen=self.liste_verbindungen
         )
 
-        # Kürzester Weg vom Start- zum Zielpunkt und dessen Kosten wird berechnet
-        kürzester_weg, kosten_kürzester_weg = self.astar3(
-            self.startpunkt, self.zielpunkt, self.graph)
+        # Kürzester Weg vom Start- zum Zielpunkt und dessen Länge wird berechnet
+        # A*-Algorithmus wird dabei verwendet
+        kürzester_weg, länge_kürzester_weg = self.astar(self.startpunkt, self.zielpunkt, self.graph)
+        anzahl_abbiegen_kürzester_weg = self.berechneAnzahlAbbiegenPfad(kürzester_weg)
 
         # der kürzeste Weg wird blau im Koordinatensystem dargestellt
-        # TODO Code wieder aktivieren
-        self.koordinatensystem.zeichnePfad(
-            kürzester_weg, 'b-', "Kürzester Weg")
+        self.koordinatensystem.zeichnePfad(kürzester_weg, 'b-')
 
-        # von der kürzesten Strecke ausgehend, werden diejenigen Strecken ausgewählt, die noch im Bereich der eingegebenen maximalen Verlängerung sind
-        # TODO Code aktivieren
-        # max_verlängerung = float(
-        #     input("Maximale Verlängerung in Prozent: ")) / 100
-        max_verlängerung = 15/100
-        maximale_kosten = kosten_kürzester_weg + \
-            kosten_kürzester_weg * max_verlängerung
+        # maximale Länge wird mithilfe der gegebenen maximalen Verlängerung (in %) berechnet
+        maximale_länge = länge_kürzester_weg + \
+            länge_kürzester_weg*(self.maximale_verlängerung/100)
 
-        # TODO
-        # Versuch mti allen Pfaden
-        # alle _ Pfade
-        # self, graph, start, end, max_länge, path=[], akutelle_länge=0, paths=[]
-        alle_pfade = self.DFS2(self.graph, self.startpunkt,
-                               self.zielpunkt, maximale_kosten)
+        # optimaler Pfad wird ermittelt
+        optimaler_pfad, länge_optimaler_pfad, anzahl_abbiegen_optimaler_pfad = self.optimalsterPfad(self.graph, self.startpunkt,
+                                                                                                    self.zielpunkt, maximale_länge)
+        umweg_optimaler_imVergleich_kürzester = länge_optimaler_pfad - länge_kürzester_weg
 
-        anzahl_abbiegen_alle_pfade = [
-            self.berechneAnzahlAbbiegenPfad(pfad) for pfad in alle_pfade]
-        min_abbiegen = min(anzahl_abbiegen_alle_pfade)
 
-        # somit optimaler Pfad
-        optimaler_pfad = alle_pfade[
-            anzahl_abbiegen_alle_pfade.index(min_abbiegen)
-        ]
-        self.koordinatensystem.zeichnePfad(optimaler_pfad, 'g-', None)
 
-        kosten_optimaler_pfad = self.berechneLängePfad(optimaler_pfad)
+        if self.erweiterung_minAbbiegen:
+            #### Erweiterung
+            # Pfad mit minimalstem Abbiegen (ohne Eingrenzung) wird berechnet
+            minAbbiegen_pfad, anzahl_abbiegen_minAbbiegen_pfad = self.minAbbiegenPfad(self.graph, self.startpunkt, self.zielpunkt)
+            
+            # Länge dieses Pfades
+            länge_minAbbiegen_pfad = self.berechneLängePfad(minAbbiegen_pfad)
+            
+            # Umweg im Vergleich zum optimalen Pfad
+            umweg_minAbbiegen_imVergleich_optimaler = länge_minAbbiegen_pfad - länge_optimaler_pfad
+            
+            # Umweg im Vergleich zum kürzesten Pfad
+            umweg_minAbbiegen_imVergleich_kürzester = länge_minAbbiegen_pfad - länge_kürzester_weg
+            
+            # min Abbiegen-Pfad wird gezeichnet
+            self.koordinatensystem.zeichnePfad(minAbbiegen_pfad, 'fuchsia')
 
-        umweg = kosten_optimaler_pfad - kosten_kürzester_weg
 
-        print("Optimaler Pfad: ", optimaler_pfad,
-              f"--> {min_abbiegen} mal Abbiegen")
-        print("> Kosten für diesen Pfad: ", kosten_optimaler_pfad)
-        print("> Umweg für diesen optimalen Weg im Vergleich zum Kürzesten: ", umweg)
-        print(">> Kosten Kürzester: ", kosten_kürzester_weg,
-              "> maximale Kosten: ", maximale_kosten)
 
-        self.koordinatensystem.show()
-        exit()
+        # optimaler Pfad wird gezeichnet am Schluss gezeichnet
+        self.koordinatensystem.zeichnePfad(optimaler_pfad, 'y-')
 
-        # TODO !!!
-        # Aussortierung der Knoten
-        mögliche_knoten = self.graph.knoten
-        for knoten in mögliche_knoten.copy():
-            # Distanz Startpunkt --> aktueller Knoten
-            d1 = self.berechneLängePfad(
-                self.dijkstra(self.startpunkt, knoten, self.graph))
 
-            # Distanz Knoten --> Zielpunkt
-            d2 = self.berechneLängePfad(
-                self.dijkstra(knoten, self.zielpunkt, self.graph))
+        # Zeitmessung wird beendet
+        ende_zeit = time.time()
 
-            # d1 = self.chebyshev_distance(self.startpunkt, knoten)
-            # d2 = self.chebyshev_distance(knoten, self.zielpunkt)
+        # Kürzester
+        print(f"> Kürzester Weg: {kürzester_weg}")
+        print(f" >> Länge kürzester Weg: {länge_kürzester_weg}")
+        print(f" >> Anzahl Abbiegen kürzester Weg: {anzahl_abbiegen_kürzester_weg}")
 
-            summe = d1 + d2
-            if summe > maximale_kosten:
-                # ist die Summe der beiden Längen größer als die maximalen Kosten
-                # so wird der Knoten aus den möglichen Knoten entfernt, da er nicht mehr in Frage kommt
-                mögliche_knoten.remove(knoten)
+        # Optimaler            
+        print(f"\n> Optimaler Weg: {optimaler_pfad}")
+        print(f" >> Länge optimaler Weg: {länge_optimaler_pfad}")
+        print(f" >> Anzahl Abbiegen optimaler Weg: {anzahl_abbiegen_optimaler_pfad}")
+        print(f" >>> Umweg im Vergleich zum kürzesten Weg: {umweg_optimaler_imVergleich_kürzester}; Maximal mögliche Länge war {maximale_länge}")
 
-        ####
-        # Test:
-        # TODO Umändern!!
-        mögliche_knoten = self.graph.knoten
-
-        alle_hyperkanten = self.macheHyperkanten2(mögliche_knoten, self.graph)
-
-        # self.koordinatensystem.show()
-
-        graph_hyperkanten = Graph()
-        for hyperkante in alle_hyperkanten:
-            graph_hyperkanten.add_Kante(
-                hyperkante[0], hyperkante[-1], self.berechneObAbbiegen(hyperkante))
-
-        # hier Dijkstra verwenden
-        optimalster_weg = self.dijkstra(
-            self.startpunkt, self.zielpunkt, graph_hyperkanten)
-        länge_optimalster_weg = self.berechneLängePfad(optimalster_weg)
-        # TODO: label bei KoordinatenSystem Pfad zeichnen entfernen
-        self.koordinatensystem.zeichnePfad(optimalster_weg, 'g-', None)
-
-        print("Kürzeste Kosten: ", kosten_kürzester_weg, " Anzahl Abb.: ",
-              self.berechneAnzahlAbbiegenPfad(kürzester_weg))
-        print("Maximale Kosten: ", maximale_kosten)
-        print("Kosten optimalster Weg: ", länge_optimalster_weg,
-              " Anzahl Abb.: ", self.berechneAnzahlAbbiegenPfad(optimalster_weg))
+        if self.erweiterung_minAbbiegen:
+            ### Erweiterung
+            # Min Abbiegen
+            print(f"\nErweiterung: Berechnung des Wegs mit geringster Anzahl an Abbiegevorgängen:")
+            print(f"> 'min. Abbiegen Weg': {minAbbiegen_pfad}")
+            print(f" >> Länge von 'min. Abbiegen Weg': {länge_minAbbiegen_pfad}")
+            print(f" >> Anzahl Abbiegen: {anzahl_abbiegen_minAbbiegen_pfad}")
+            print(f" >>> Umweg im Vergleich zum optimalsten Weg: {umweg_minAbbiegen_imVergleich_optimaler}")
+            print(f" >>> Umweg im Vergleich zum kürzesten Weg: {umweg_minAbbiegen_imVergleich_kürzester}")
+        
+        # Zeitmessung wird ausgegeben
+        print(f"\n>> Laufzeit des Programms: {ende_zeit-start_zeit} Sekunden \n (Start der Zeitmessung bei Aufruf der main-Methode)")
 
         self.koordinatensystem.show()
 
-        #####
-        # Erweiterung
 
-        # Weg mit am wenigsten Abbiegen
-        graph_wenigsten_abbiegen = Graph()
+    def optimalsterPfad(self, graph, start: tuple, ziel: tuple, max_länge: int, pfad=[], bisher_optimalster_pfad=None, länge_bisherOptimalsterPfad=math.inf, anzahl_abbiegen_bisherOptimalsterPfad=math.inf):
+        """ rekursive Methode zur Tiefensuche im gegebenen Graph
+        
+        Dabei wird die Tiefensuche abgebrochen, falls der aktuelle Pfad länger als maximal erlaubt ist.
+        Ebenfalls wird die Tiefensuche abgebrochen, falls im aktuellen Pfad öfters abgebogen wird als der bisher optimalste Pfad (bisher beste)
+        
+        Args:
+            graph (Graph): Datenstruktur Graph zum Verwalten der Straßen
+            start (tuple): Startknoten 
+            ziel (tuple): Zielknoten
+            max_länge (int): maximale Länge des optimalen Pfads, wurde berechnet aus der maximalen Verlängerung (Eingabe des Benutzers)
+            pfad (list): aktueller Pfad, zu dem der Startknoten hinzugefügt wird
+            bisher_optimalster_pfad (list): zu Beginn 'None'. Falls der aktuelle Pfad den Zielknoten erreicht und nicht davor abgebrochen wird,
+                                            gilt dieser Pfad als bisher optimalster Pfad.
+            länge_bisherOptimalsterPfad (float): zu Beginn 'unendlich'. Wird ein bisher_optimalster_pfad gefunden, so wird die Länge dieses Pfades aktualisiert.
+            anzahl_abbiegen_bisherOptimalsterPfad (float): zu Beginn 'unendlich'. Wird ein bisher_optimalster_pfad gefunden, so wird die Anzahl der Abbiegevorgänge dieses Pfades aktualisiert.
+            
+        Returns:
+            list. der bisher_optimalster_pfad ist zum Schluss der Methode der beste optimalste Pfad und wird zurückgegeben
+            float. Länge des besten optimalsten Pfades wird zurückgegeben
+            float. Anzahl der Abbiegevorgänge des optimalesten Pfades wird zurückgegeben.        
+        """
+        # Startknoten wird zum aktuellen Pfad hinzugefügt
+        pfad.append(start)
 
-        # jetzt sind alle Knoten mögliche Knoten der Hyperkanten
-        mögliche_knoten_wenigsten_abbiegen = self.graph.knoten
-        hyperkanten_wenigsten_abbiegen = self.macheHyperkanten(
-            mögliche_knoten_wenigsten_abbiegen, self.graph)
-        for hyperkante in hyperkanten_wenigsten_abbiegen:
-            graph_wenigsten_abbiegen.add_Kante(
-                hyperkante[0], hyperkante[-1], self.berechneObAbbiegen(
-                    hyperkante)
-            )
-        weg_wenigsten_abbiegen = self.dijkstra(
-            self.startpunkt, self.zielpunkt, graph_wenigsten_abbiegen)
+        # Länge des aktuellen Pfads wird berechnet
+        länge_aktueller_pfad = self.berechneLängePfad(pfad)
 
-        self.koordinatensystem.zeichnePfad(weg_wenigsten_abbiegen, 'r-', None)
-        self.koordinatensystem.show()
+        # Länge des aktuellen Pfads darf nicht länger als die maximale Länge sein
+        if länge_aktueller_pfad < max_länge:
 
-    def DFS(self, graph, v, max_kosten, seen=None, path=None):
-        if seen is None:
-            seen = []
-        if path is None:
-            path = [v]
+            # die Anzahl der Abbiegevorgänge des aktuellen Pfads wird berechnet
+            anzahl_abbiegen_aktueller_pfad = self.berechneAnzahlAbbiegenPfad(pfad)
 
-        seen.append(v)
+            # die Anzahl der Abbiegevorgänge des aktuellen Pfads sollen weniger sein als beim bisher optimalsten Pfad
+            if anzahl_abbiegen_aktueller_pfad <= anzahl_abbiegen_bisherOptimalsterPfad:
+                
+                # falls der aktuelle Knoten der Zielknoten ist
+                if start == ziel:
+                    
+                    # Sonderfall: Anzahl Abbiegevorgänge des aktuellen und bisher optimalsten sind gleich,
+                    # so wird der kürzere weiter verwendet
+                    if anzahl_abbiegen_bisherOptimalsterPfad == anzahl_abbiegen_aktueller_pfad:
 
-        paths = []
-        for nachfolger_item in graph[v]:
-            # t=nachfolger_knoten
-            t, gewichtung = nachfolger_item[0]
-            if t not in seen:
-                t_path = path + [t]
-                paths.append(tuple(t_path))
-                paths.extend(self.DFS(graph, t, max_kosten, seen[:], t_path))
-        return paths
+                        if länge_aktueller_pfad < länge_bisherOptimalsterPfad:
+                            bisher_optimalster_pfad = pfad
+                            länge_bisherOptimalsterPfad = länge_aktueller_pfad
+                            anzahl_abbiegen_bisherOptimalsterPfad = anzahl_abbiegen_aktueller_pfad
 
-    def DFS2(self, graph, start, end, max_länge, path=[], akutelle_länge=0, paths=[]):
-        # if akutelle_länge < max_länge:
-        path = path+[start]
-        if self.berechneLängePfad(path) < max_länge:
-            if start == end:
-                paths.append(path)
-            for nachfolger_item in graph[start]:
-                # nachfolger_knoten = node
-                node, gewichtung = nachfolger_item[0]
-                # akutelle_länge += gewichtung
-                # if akutelle_länge <= max_länge:
-                if node not in path:
-                    akutelle_länge += gewichtung
-                    self.DFS2(graph, node, end, max_länge,
-                              path, akutelle_länge, paths)
+                    # die Eigenschaften des bisher optimalsten Pfades werden aktualisiert, 
+                    # da der aktuelle Pfad besser ist
+                    else:
+                        bisher_optimalster_pfad = pfad
+                        länge_bisherOptimalsterPfad = länge_aktueller_pfad
+                        anzahl_abbiegen_bisherOptimalsterPfad = anzahl_abbiegen_aktueller_pfad
 
-        return paths
+                for nachfolger_item in graph[start]:
 
-    def find_all_paths(self, graph, start, end, path=[]):
-        path = path + [start]
-        if start == end:
-            return [path]
-        # if not graph.has_key(start):
-        #     return []
-        paths = []
-        # TODO
-        # umschreiben
-        for node_item in graph[start]:
-            node, gewichtung = node_item[0]
-            if node not in path:
-                newpaths = self.find_all_paths(graph, node, end, path)
-                for newpath in newpaths:
-                    paths.append(newpath)
-        print(paths)
-        return paths
+                    knoten, gewichtung = nachfolger_item[0]
 
-    def macheHyperkanten(self, mögliche_knoten: list, graph):
-        # neue Kanten werden mit den möglichen Knoten erstellt
-        # die neuen Kanten sollen 3 Knoten miteinander verbinden, sog. Hyperkanten (statt 2 Knoten)
-        alle_hyperkanten = []
-        for knoten in mögliche_knoten:
-            hyperkanten = []
-            nachfolger1_items = graph[knoten]
-            for nachfolger1_item in nachfolger1_items:
-                nachfolger1, gewichtung1 = nachfolger1_item[0]
+                    # rekursiver Aufruf mit den Nachfolgerknoten
+                    if knoten not in pfad:
+                        bisher_optimalster_pfad, länge_bisherOptimalsterPfad, anzahl_abbiegen_bisherOptimalsterPfad = self.optimalsterPfad(graph, knoten, ziel, max_länge,
+                                                                                                                                           pfad.copy(), bisher_optimalster_pfad, länge_bisherOptimalsterPfad, anzahl_abbiegen_bisherOptimalsterPfad)
 
-                nachfolger2_items = graph[nachfolger1]
+        # der in diesem Teilgraphen optimalster Pfad wird zusammen mit seinen Eigenschaften zurückgegeben.
+        return bisher_optimalster_pfad, länge_bisherOptimalsterPfad, anzahl_abbiegen_bisherOptimalsterPfad
 
-                for nachfolger2_item in nachfolger2_items:
-                    nachfolger2, gewichtung2 = nachfolger2_item[0]
+    def pfadMitGrößerAnzahlAbbiegenImBereich(self, graph, start: tuple, end, max_länge: int, pfad=[], bisher_optimalster_pfad=None, länge_bisherOptimalsterPfad=math.inf, anzahl_abbiegen_bisherOptimalsterPfad=math.inf):
 
-                    # wenn der Nachfolger des Nachfolgers nicht der Ausgangsknoten ist
-                    if nachfolger2 != knoten:
-                        hyperkanten.append([
-                            knoten, nachfolger1, nachfolger2
-                        ])
-            alle_hyperkanten.extend(hyperkanten)
-        print(alle_hyperkanten)
-        return alle_hyperkanten
+        # Startknoten wird zum aktuellen Pfad hinzugefügt
+        pfad.append(start)
 
-    def macheHyperkanten2(self, mögliche_knoten: list, graph):
+        # Länge des aktuellen Pfads wird berechnet
+        länge_aktueller_pfad = self.berechneLängePfad(pfad)
 
-        alle_hyperkanten = []
-        fertige_kanten = []
+        # Länge des aktuellen Pfads darf nicht länger als die maximale Länge sein
+        if länge_aktueller_pfad < max_länge:
 
-        # Alle Kante deren Anfangs- und Endknoten in der Liste der möglichen Knoten enthalten sind
-        alle_kanten = list(filter(
-            lambda kante: kante[0] in mögliche_knoten and kante[1], graph.kanten))
+            # die Anzahl der Abbiegevorgänge des aktuellen Pfads wird berechnet
+            anzahl_abbiegen_aktueller_pfad = self.berechneAnzahlAbbiegenPfad(
+                pfad)
 
-        # Gewichtung wird nicht benötigt
-        q = [kante[0:2] for kante in alle_kanten.copy()]
+            # die Anzahl der Abbiegevorgänge des aktuellen Pfads sollen weniger sein als beim bisher optimalsten Pfad
+            if anzahl_abbiegen_aktueller_pfad <= anzahl_abbiegen_bisherOptimalsterPfad:
 
-        while q:
-            aktuelle_kante = q.pop()
-            hyperkante = np.array([aktuelle_kante])
-            p1, p2 = aktuelle_kante
-            akt_steigung = self.berechneSteigungKante(aktuelle_kante)
+                if start == end:
 
-            # 1. Schritt Kanten mit derselben Steigung finden
-            kanten_selbe_steigung = list(filter(
-                lambda k: self.berechneSteigungKante(k) == akt_steigung, q
-            ))
+                    if anzahl_abbiegen_bisherOptimalsterPfad == anzahl_abbiegen_aktueller_pfad:
 
-            # 2. Schritt verbundene Kanten finden
-            while kanten_selbe_steigung:
-                hyperkante_flatten = hyperkante.copy().reshape(2, 2)
-                kanten_selbe_steigung_verbunden = list(filter(
-                    lambda k: k[0] in hyperkante_flatten or k[1] in hyperkante_flatten, kanten_selbe_steigung
-                ))
+                        if länge_aktueller_pfad < länge_bisherOptimalsterPfad:
+                            bisher_optimalster_pfad = pfad
 
-                if kanten_selbe_steigung_verbunden:
-                    for kante in kanten_selbe_steigung_verbunden:
-                        hyperkante = np.append(
-                            hyperkante, np.array([kante], axis=0))
-                        q.remove(kante)
-                else:
-                    alle_hyperkanten.append(hyperkante)
-                    break
+                    else:
 
-            else:
-                alle_hyperkanten.append(aktuelle_kante)
-                q.remove(aktuelle_kante)
+                        bisher_optimalster_pfad = pfad
 
-        return alle_hyperkanten
+                for nachfolger_item in graph[start]:
+
+                    knoten, gewichtung = nachfolger_item[0]
+
+                    if knoten not in pfad:
+                        bisher_optimalster_pfad = self.pfadMitGrößerAnzahlAbbiegenImBereich(graph, knoten, end, max_länge,
+                                                            pfad.copy(), bisher_optimalster_pfad, länge_bisherOptimalsterPfad, anzahl_abbiegen_bisherOptimalsterPfad)
+
+        return bisher_optimalster_pfad
+
+
+    def heuristik_dfs(self, knoten: tuple, aktueller_pfad: list):
+        """ Funktion zur Optimierung der Tiefensuche der Methode minAbbiegenPfad()
+        
+        Hierfür wird berechnet, wie oft man abbiegen müsste, falls der gegebene Knoten im aktuellen Pfad sein würde
+        Diese Anzahl der Abbiegevorgänge im neuen Pfad wird zurückgegeben.
+        
+        Args:
+            knoten (tuple): Knoten, der zu aktueller_pfad hinzugefügt wird
+            aktueller_pfad (list): Ausgangspfad
+            
+        Returns:
+            int. Anzahl der Abbiegevorgänge im neu entstandenen Pfad           
+        
+        """
+        # Falls überhaupt bereits Knoten im aktuellen Pfad sind
+        if aktueller_pfad:
+            neuer_pfad = aktueller_pfad.copy()
+            neuer_pfad.append(knoten)
+
+            return self.berechneAnzahlAbbiegenPfad(neuer_pfad)
+        
+        # sind keine Knoten im aktuellen Pfad, so wird 0 zurückgegeben
+        else:
+            return 0
+
+
+    def minAbbiegenPfad(self, graph, start: tuple, ziel: tuple, pfad=[], bisher_minAbbiegen_pfad=None, anzahl_abbiegen_bisherMinAbbiegen_pfad=math.inf):
+        """ Methode zum Berechnen des Pfades mit minimalen Abbiegen ohne Eingrenzung
+        
+        Ziel dieser Methode ist es, denjenigen Pfad zu finden, in dem am wenigsten Mal abgebogen werden muss.
+        Dabei wird der aktuelle Pfad verworfen, wenn man in diesem öfters abbiegen muss, als in dem bisher 'besten' Pfad (bisher_minAbbiegen_pfad).
+        
+        Args:
+            graph (Graph): Datenstruktur Graph zum Verwalten der Straßen
+            start (tuple): Startknoten 
+            ziel (tuple): Zielknoten
+            pfad (list): aktueller Pfad, zu dem der Startknoten hinzugefügt wird
+            
+            bisher_optimalster_pfad (list): zu Beginn 'None'. 
+                Falls der aktuelle Pfad den Zielknoten erreicht und nicht davor abgebrochen wird, 
+                gilt dieser Pfad als bisher optimalster Pfad.
+                
+            anzahl_abbiegen_bisherOptimalsterPfad (float): zu Beginn 'unendlich'. 
+                Wird ein bisher_optimalster_pfad gefunden, so wird die Anzahl der Abbiegevorgänge dieses Pfades,
+                also anzahl_abbiegen_bisherOptimalsterPfad, aktualisiert.
+            
+        Returns:
+            list. der bisher_optimalster_pfad ist zum Schluss der Methode der beste optimalste Pfad und wird zurückgegeben
+            float. Anzahl der Abbiegevorgänge des optimalesten Pfades wird zurückgegeben.        
+        """
+        
+        # Akuteller Startknoten wird zum aktuellen Knoten hinzugefügt
+        pfad.append(start)
+        
+        # Die Anzahl der Abbiegevorgänge im akutellen Pfad werden berechent
+        anzahl_abbiegen_aktueller_pfad = self.berechneAnzahlAbbiegenPfad(pfad)
+        
+        # Falls diese Anzahl geringer als die Anzahl der Abbiegevorgänge des bisher 'besten' Pfades ist,
+        # kann mit diesem aktuellen Pfad fortgefahren werden.
+        if anzahl_abbiegen_aktueller_pfad < anzahl_abbiegen_bisherMinAbbiegen_pfad:
+            
+            # falls der aktuelle Knoten der Zielknoten ist
+            if start == ziel:
+                
+                # aktueller Pfad ist nun der neue 'beste' Pfad mit geringster Anzahl an Abbiegevorgängen
+                bisher_minAbbiegen_pfad = pfad
+                anzahl_abbiegen_bisherMinAbbiegen_pfad = anzahl_abbiegen_aktueller_pfad
+            
+            # mithilfe der heuristischen Funktion heuristik_dfs wird für jedem Nachbarknoten ein Wert bestimmt
+            # der beste Nachbarknoten ist derjenige, mit dem geringsten heuristischen Wert
+            sortierte_liste_nachfolger = sorted(graph[start], 
+                                                key=lambda item: self.heuristik_dfs(item[0][0], pfad))
+            
+            for nachfolger_item in sortierte_liste_nachfolger:
+                nachfolger, gewichtung = nachfolger_item[0]
+
+                
+                if nachfolger not in pfad:
+
+                    # die Methode wird rekursiv aufgeru
+                    bisher_minAbbiegen_pfad, anzahl_abbiegen_bisherMinAbbiegen_pfad = self.minAbbiegenPfad(graph, nachfolger,
+                                                                                                            ziel, pfad.copy(), bisher_minAbbiegen_pfad, anzahl_abbiegen_bisherMinAbbiegen_pfad)
+        
+        return bisher_minAbbiegen_pfad, anzahl_abbiegen_bisherMinAbbiegen_pfad
+
 
     def astar(self, start, ziel, graph):
-        # https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
-        # https://www.redblobgames.com/pathfinding/a-star/implementation.html
-        """ Implementierung des A*-Algorithmus """
-        # Speicherung des finalen Pfades vom Start zum Ziel
-        path = []
-        # bereits besuchte Knoten
-        besuchte = []
-        # TODO
-        priorityQueue = PriorityQueue()
-        priorityQueue.put(start, 0)
-        gekommen_von = {}
-        kosten_bis_jetz = {}
-        gekommen_von[start] = None
-        kosten_bis_jetz[start] = 0
-
-        while not priorityQueue.empty():
-            aktueller_knoten = priorityQueue.get()
-
-            if aktueller_knoten == ziel:
-                break
-
-            for nächsten_knoten_item in graph[aktueller_knoten]:
-                nächster_knoten, kosten = nächsten_knoten_item
-                neue_kosten = kosten_bis_jetz[aktueller_knoten] + kosten
-
-                if nächster_knoten not in kosten_bis_jetz or neue_kosten < kosten_bis_jetz[nächster_knoten]:
-                    kosten_bis_jetz[nächster_knoten] = neue_kosten
-                    priority = neue_kosten + \
-                        self.heuristisch(nächster_knoten, ziel)
-                    priorityQueue.put(nächster_knoten, priority)
-                    gekommen_von[nächster_knoten] = aktueller_knoten
-
-        return gekommen_von, kosten_bis_jetz
-
-    def astar2(self, start, ziel, graph):
-        geschlossenes_set = set()
-        gekommen_von = {}
-
-        gscore = {start: 0}
-        fscore = {start: self.heuristisch(start, ziel)}
-
-        offener_haufen = []
-
-        heapq.heappush(offener_haufen, (fscore[start], start))
-
-        while offener_haufen:
-            aktueller_knoten = heapq.heappop(offener_haufen)[1]
-
-            if aktueller_knoten == ziel:
-                data = []
-                while aktueller_knoten in gekommen_von:
-                    data.append(aktueller_knoten)
-                    aktueller_knoten = gekommen_von[aktueller_knoten]
-
-                return data
-
-            geschlossenes_set.add(aktueller_knoten)
-
-    def astar3(self, start, ziel, graph):
-        # https://rosettacode.org/wiki/A*_search_algorithm#Python
-
+        """ A*-Algorithmus zur Berechnung des kürzesten Weg.
+        
+        Im gegebenen Graph soll vom Start- zum Zielknoten der kürzeste Weg berechnet werden.
+        Dabei wird eine Schätzfunktion verwendet, um das Verfahren zu optimieren, indem der Abstand zum Zielknoten berechnet wird.
+        Als Schätzfunktion wird die Methode heuristik_astar verwendet, welche die Luftlinie berechnet.
+            
+        Args: 
+            start (tuple): Startknoten
+            ziel (tuple): Zielknoten
+            graph (Graph): Graph als Datenstruktur
+        
+        Returns:
+            list. Pfad mit dem Weg vom Start- zum Zielknoten
+            float. Kosten für diesen Weg            
+        """
         # Tatsächliche Kosten zu jedem Knoten vom Startknoten aus
         G = {}
 
-        # Geschätze Kosten vom Start zum Ende über die Knoten
+        # Geschätzte Kosten vom Start zum Ende über die Knoten
         F = {}
 
         # Initialisierung der Startwerte
         G[start] = 0
-        F[start] = self.heuristisch(start, ziel)
+        F[start] = self.heuristik_astar(start, ziel)
 
+        # offene und geschlossene Knoten werden in einem Set gespeichert
         geschlossene_knoten = set()
+        # zu Beginn wird der Startknoten zu den offenen Knoten hinzugefügt
         offene_knoten = set([start])
+        # Verlauf des Wegs wir in gekommen_von gespeichert
         gekommen_von = {}
 
+        # Solange noch ein Knoten offen ist:
         while len(offene_knoten) > 0:
-            # Wähle die Knoten von der offenen Liste aus, die den geringsten F-Wert besitzen
+            
+            # Wähle den Knoten von der offenen Liste aus, der den geringsten F-Wert besitzen
             aktueller_knoten = None
             aktueller_F_wert = None
 
@@ -392,109 +409,138 @@ class Berechnungen:
 
             # Überprüfe, ob der Zielknoten erreicht wurde
             if aktueller_knoten == ziel:
-                # die Route rückwärts gehen
+                
+                # falls ja, wird die Route rückwärts gegangen
                 pfad = [aktueller_knoten]
                 while aktueller_knoten in gekommen_von:
                     aktueller_knoten = gekommen_von[aktueller_knoten]
                     pfad.append(aktueller_knoten)
+                
+                # Pfad wird umgekehrt
                 pfad.reverse()
+                
+                # der Pfad wird mit der Länge zurückgegeben
                 return pfad, F[ziel]  # Fertig!
 
             # Markiere den aktuellen Knoten als geschlossen
             offene_knoten.remove(aktueller_knoten)
             geschlossene_knoten.add(aktueller_knoten)
 
-            # Aktualisierung der Werte für die Knoten neben dem aktuellen Knoten
-
+            # Aktualisierung der Werte für die Nachbarknoten neben dem aktuellen Knoten
             for item in graph[aktueller_knoten]:
                 nachbar_knoten, gewichtung = item[0]
-                print(nachbar_knoten)
+
                 if nachbar_knoten in geschlossene_knoten:
                     # dieser Knoten wurde bereits ausgeschöpft
                     continue
-                kandidatG = G[aktueller_knoten] + gewichtung
+                
+                g_wert_kandidat = G[aktueller_knoten] + gewichtung
 
+                # falls der Nachbarknoten noch nicht offen ist, 
+                # wird er als offener gespeichert
                 if nachbar_knoten not in offene_knoten:
                     offene_knoten.add(nachbar_knoten)
-                elif kandidatG >= G[nachbar_knoten]:
-                    # This G-Wert ist schlechter als der vorher gefundene
+                
+                elif g_wert_kandidat >= G[nachbar_knoten]:
+                    # Wenn der G-Wert schlechter als der vorher gefundene ist
                     continue
 
-                # Passe den G-Wert an
+                # G-Wert wird angepasst
                 gekommen_von[nachbar_knoten] = aktueller_knoten
-                G[nachbar_knoten] = kandidatG
+                G[nachbar_knoten] = g_wert_kandidat
+                
                 # Abstand zum Zielknoten wird geschätzt
-                H = self.heuristisch(nachbar_knoten, ziel)
+                H = self.heuristik_astar(nachbar_knoten, ziel)
                 F[nachbar_knoten] = G[nachbar_knoten] + H
+        
+        # Falls kein Weg gefunden wurde wird None zurückgegeben
+        return None
 
-        raise RuntimeError("A* hat keine Lösung gefunden")
-
-    def heuristisch(self, knoten1, knoten2):
+    def heuristik_astar(self, knoten1, knoten2):
         """ Methode als heuristische Funktion im A*-Algorithmus
-            TODO wird das verwendet? 
-            TODO Es wird der euklidische Abstand (Luftlinie) zwischen den beiden gegebenen Knoten berechnet
+        
+        Es wird der euklidische Abstand (Luftlinie) zwischen den beiden gegebenen Knoten berechnet.
+        
+        Args:
+            knoten1: Startpunkt
+            knoten2: Zielpunkt
+        
+        Returns:
+            float. euklidische Distanz zwischen Start- und Zielpunkt    
+            
         """
-        # Methode berechne Länge wird verwendet
+        # Methode berechneLänge wird verwendet
         return self.berechneLänge(knoten1, knoten2)
 
-    def chebyshev_distance(self, start, ende):
-        D = 1
-        D2 = math.sqrt(2)
-        dx = abs(start[0] - ende[0])
-        dy = abs(start[1] - ende[1])
-        return D*(dx + dy) + (D2 - 2 * D) * min(dx, dy)
 
     def berechneLänge(self, knoten1: tuple, knoten2: tuple):
+        """ Methode zur euklidischen Distanz zwischen zwei Knoten
+        
+        Args:
+            knoten1: Startpunkt
+            knoten2: Zielpunkt
+        
+        Returns:
+            float. euklidische Distanz zwischen Start- und Zielpunkt
+        """
         # c² = a² + b² wird angewendet (Pythagoras)
         (x1, y1) = knoten1
         (x2, y2) = knoten2
         return math.sqrt(
-            (x1 - x2)**2
-            +
-            (y1 - y2)**2
-        )
+            (x1 - x2)**2 + (y1 - y2)**2 )
 
     def berechneLängePfad(self, pfad: list):
-        """ berechnet die Summe der Teilverbindungen des gegebenen Pfad
+        """ Methode zur Berechnung der Summe der Teilverbindungen des gegebenen Pfad
+        
+        Dabei wird die Methode berechneLänge für alle Teilverbindungen des gegebenen Pfads aufgerufen.
+        
+        Args:
+            pfad (list): Pfad, dessen Länge berechnet werden soll.
+            
+        Returns:
+            float. Länge des Pfads
         """
+        
         sum = 0
         for i in range(len(pfad)):
             if i > 0:
+                # Für den akutellen Punkt und seinen Vorgängerpunkt wird der Abstand berechnet.
                 sum += self.berechneLänge(pfad[i-1], pfad[i])
         return sum
 
-    def berechneObAbbiegen(self, hyperkante: list):
-        """ Berechnung, ob man bei der gegebenen Hyperkante, die aus 3 Knoten besteht, abbiegen muss """
-        kante1, kante2 = hyperkante[:2], hyperkante[1:]
-        steigung1 = self.berechneSteigungKante(kante1)
-        steigung2 = self.berechneSteigungKante(kante2)
-        if steigung1 == steigung2:
-            return 0
-        else:
-            return 1
-
     def berechneAnzahlAbbiegenPfad(self, pfad: list):
-        """ Berechnung der Anzahl, wie häufig auf dem gegebenen Pfad (Liste von Punkten = Parameter) abgebogen werden muss
+        """ Berechnung der Anzahl, wie häufig auf dem gegebenen Pfad (Liste von Punkten) abgebogen werden muss.
+        
+        Args:
+            pfad (list): Pfad
+            
+        Returns:
+            float. Anzahl der Abbiegevorgänge im gegebenen Pfad
         """
-        # Liste mit allen Steigungen der gegebenen Strecken wird erstellt
+        
+        # Liste mit allen Steigungen der gegebenen Strecken wird berechnet
         steigungen = []
-        # dabei wird die Methode berechneSteigungKante(tuple) aufgerufen
         for i in range(len(pfad)):
             if i > 0:
                 steigungen.append(
                     self.berechneSteigungKante((pfad[i-1], pfad[i]))
                 )
 
+        # Für jeden Änderung des Betrags der aktuellen Steigerung wird der Zähler um 1 erhöht
+        
         # die Anzahl der Abbiegevorgänge beträgt zu Beginn 0
         anzahl_abbiegen = 0
-        # TODO kommentare
+
         for i in range(len(steigungen)):
+            
             # die Steigung der akutellen Strecke wird zugewiesen
             aktuell = steigungen[i]
-            # falls es Strecke vor der aktuellen Strecke gibt
+            
+            # falls es eine Strecke vor der aktuellen Strecke gibt
             if i > 0:
                 # die Steigung der Strecke vor der aktuellen Strecke wird zugewiesen
                 zuvor = steigungen[i-1]
+                
                 # wenn die beiden zugewiesenen Steigungen unterschiedlich sind,
                 # wird der Zähler erhöht
                 if aktuell != zuvor:
@@ -502,9 +548,21 @@ class Berechnungen:
 
         return anzahl_abbiegen
 
-    def berechneSteigungKante(self, kante: tuple):
+    def berechneSteigungKante(self, kante):
         """berechnet die Steigung der eingegebenen Kante."""
+        
+        """ Methode zur Berechnung der aktuellen Steigung in der gegebenen Kante
+        
+        Args:
+            kante: Liste aus zwei Punkten (Knoten)
+        
+        Returns:
+            float. Steigung der Strecke der beiden Punkte
+        
+        """
+        
         (x1, y1), (x2, y2) = kante
+        
         # Differenz der y-Koordinaten des Start- und Zielpunktes der gegebenen Kante
         y_diff = y2 - y1
 
@@ -512,58 +570,37 @@ class Berechnungen:
         x_diff = x2 - x1
         try:
             steigung = y_diff / x_diff
+        
         # falls keine Veränderung in x-Richtung vorliegt, wird der Steigung die 'Zahl' unendlich zugewiesen
         except ZeroDivisionError:
             steigung = math.inf
 
         return steigung
 
-    def dijkstra(self, start, ziel, graph):
-        assert start in graph.knoten
-        distanz = {knoten: inf for knoten in graph.knoten}
-        vorheriger = {knoten: None for knoten in graph.knoten}
-        distanz[start] = 0
-        q = graph.knoten.copy()
-        nachbarn = {knoten: set() for knoten in graph.knoten}
-
-        for start, ende, kosten in graph.kanten:
-            nachbarn[start].add((ende, kosten))
-
-        while q:
-            u = min(q, key=lambda knoten: distanz[knoten])
-            q.remove(u)
-            if distanz[u] == inf or u == ziel:
-                break
-
-            for v, kosten in nachbarn[u]:
-                alt = distanz[u] + kosten
-                if alt < distanz[v]:
-                    distanz[v] = alt
-                    vorheriger[v] = u
-
-        s, u = deque(), ziel
-        while vorheriger[u]:
-            s.appendleft(u)
-            u = vorheriger[u]
-        s.appendleft(u)
-        return s
-
-
-inf = float('inf')
-
 
 class Graph:
     """ Klasse Graph zum Verwalten von Knoten und Kanten mit ungerichteten Gewichtungen """
 
     def __init__(self):
-        """ erstellt ein leeres Dictionary zum Speichern des Graphen """
+        """ Ein leeres Dictionary zum Speichern des Graphen wird erstellt.        
+            Der Graph wird in Form einer Adjazenzliste gespeichert.        
+        """
         self.adjazenzliste = defaultdict(list)
 
     def add_Kante(self, knoten1: tuple, knoten2: tuple, gewichtung):
-        """ fügt eine neue Kante zum Dictionary mit der gegebenen Gewichtung
-            ungerichteter Graph, daher muss die Kante für beide Knoten jeweils einmal als Start- 
-            und einmal als Zielknoten hinzugefügt werden
+        """ Methode zum Hinzufügen einer Kante.
+        Die Kante besteht aus dem gegebenen Start- und Endknoten mit der gegebenen Gewichtung.
+        
+        Für diese Aufgabe wird ein ungerichteter Graph benötigt,
+        daher muss die Kante für beide Knoten jeweils einmal als Start- 
+        und einmal als Zielknoten hinzugefügt werden.
+        
+        Args:
+            knoten1 (tuple): erster Knoten
+            knoten2 (tuple): zweiter Knoten
+            gewichtung (float): Gewichtung der Kante     
         """
+        
         self.adjazenzliste[knoten1].append({
             knoten2: gewichtung})
         self.adjazenzliste[knoten2].append({
@@ -572,34 +609,92 @@ class Graph:
 
     @property
     def knoten(self):
-        # TODO
         return set(
             knoten for knoten in self.adjazenzliste
         )
 
-    @property
-    def kanten(self):
-        kanten = []
-        for item in list(self.adjazenzliste.items()):
-            anfang = item[0]
-            nachfolge_graphen = item[1]
-            for graph in nachfolge_graphen:
-                nachfolger, kosten = list(graph.items())[0]
-                kanten.append(
-                    [anfang, nachfolger, kosten]
-                )
-        return kanten
-
     def __getitem__(self, key):
-        """ gibt die Nachfolgeknoten zusammen mit deren Gewichtungen zurück """
+        """ Zurückgeben der Nachfolgeknoten zusammen mit deren Gewichtungen
+        Args:
+            key (tuple): Startknoten
+        
+        Returns:
+            list. Liste mit Nachfolgeknoten
+        """
         return [list(n.items()) for n in self.adjazenzliste[key]]
 
 
+class EingabeFenster(tk.Frame):
+
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        # Hintergrund des Fensters wird auf helles Grün gesetzt
+        self['bg'] = '#d7efd7'
+        self.erstelleEingabeFenster()
+
+    def erstelleEingabeFenster(self):
+        """ Erstellung des Eingabefensters """
+        # Label
+        self.label = tk.Label(
+            text="Geben Sie im ersten Feld die Straßenkarte \nund im zweiten Feld die maximale Verlängerung in Prozent ein")
+        self.label.pack(side=tk.TOP)
+
+        # Eingabefeld für das Straßennetz
+        self.textfeld_straßenkarte = scrolledtext.ScrolledText(
+            self, width=40, height=10)
+        self.textfeld_straßenkarte.insert(
+            tk.END, "1. Feld: Straßennetz im Format des BwInf bitte hier einfügen:")
+        self.textfeld_straßenkarte.pack(side=tk.TOP, fill=tk.BOTH)
+        # Hintergrund des Eingabefelds wird auf helles Rot gesetzt
+        self.textfeld_straßenkarte['bg'] = '#fed8d8'
+
+        # Eingabe der maximalen Verlängerung
+        self.textfeld_maximaleVerlängerung = tk.Entry(self, width=40)
+        self.textfeld_maximaleVerlängerung.insert(
+            tk.END, "2. Feld: maximalen Verlängerung in Prozent")
+        self.textfeld_maximaleVerlängerung.pack(side=tk.TOP)
+        # Hintergrund des Eingabefelds wird ebenfalls auf helles Rot gesetzt
+        self.textfeld_maximaleVerlängerung['bg'] = '#fed7c7'
+
+        self.erweiterung = tk.IntVar()
+        self.checkbox_erweiterung = tk.Checkbutton(text="Erweiterung: Weg mit min. Anzahl Abbiegen ohne Begrenzung", variable=self.erweiterung)
+        self.checkbox_erweiterung.pack(side=tk.TOP)
+
+        # Button zum Starten
+        self.button_start = tk.Button(
+            self,
+            width=10,
+            height=5,
+            text="Starte Berechnungen",
+            command=self.starte)
+        self.button_start.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.button_start['bg'] = '#49A'        
+
+    def starte(self):
+        """ Start! """
+        # die Eingabe des Nutzers wird aus dem Textfenster gelesen
+        eingabe = self.textfeld_straßenkarte.get('1.0', 'end').split()
+        maximale_verlängerung = int(self.textfeld_maximaleVerlängerung.get())
+        
+        erweiterung = True if self.erweiterung.get() == 1 else False
+        print("Erweiterung: ", erweiterung)
+        
+        
+        # Eingabefenster wird geschlossen
+        self.destroy()
+
+        # Ruft die Klasse berechnungen auf, welche den Pfad berechnet,
+        # den der Roboter zurücklegen muss, damit alle Batterien leer sind
+        b = Berechnungen(eingabe, maximale_verlängerung, erweiterung)
+
+
 class Koordinatensystem():
-    def __init__(self):
+    def __init__(self, erweiterung_minAbbiegen):
+        self.erweiterung_minAbbiegen = erweiterung_minAbbiegen
         fig, ax = plt.subplots()
-        loc = plticker.MultipleLocator(base=1.0)
-        ax.xaxis.set_major_locator(loc)
+        # loc = plticker.MultipleLocator(base=1.0)
+        # ax.xaxis.set_major_locator(loc)
         plt.ylabel("y-Achse")
         plt.xlabel("x-Achse")
         plt.grid(True)
@@ -607,7 +702,7 @@ class Koordinatensystem():
     def zeichneStraßenkarte(self, startpunkt: tuple, zielpunkt: tuple, liste_knoten: list, liste_verbindungen):
 
         # die Kanten zwischen den einzelnen Knoten werden schwarz gezeichnet
-        self.zeichneWeg(liste_verbindungen, 'k-', label=None)
+        self.zeichneWeg(liste_verbindungen, 'k-')
 
         # Alle Straßenknoten (Kreuzungen) werden als schwarzer Punkt gezeichnet
         x_koords = [knoten[0] for knoten in liste_knoten]
@@ -625,11 +720,14 @@ class Koordinatensystem():
         # kürzester Weg wird blau dargestellt werden
         plt.plot([], [], 'b-', label='kürzester Weg')
 
-        # TODO die scheiße is orange!!!
-        # optimalster Weg wird grün dargestellt werden
-        plt.plot([], [], 'g-', label='optimalster Weg')
+        # optimalster Weg wird gelb dargestellt werden
+        plt.plot([], [], 'y-', label='optimalster Weg')
+        
+        if self.erweiterung_minAbbiegen:
+            # Erweiterung: min Abbiegen-Weg wird in pink dargestellt
+            plt.plot([], [], 'fuchsia', label='min. Abbiegen Weg')
 
-    def zeichneWeg(self, liste_verbindungen, farbe: str, label: str):
+    def zeichneWeg(self, liste_verbindungen, farbe: str):
         """ Zeichnet die gegebene Liste der Verbindungen mit der gegebenen Farbe und Label auf dem Koordinatensystem
             Format der gegebenen Liste:
             [
@@ -642,16 +740,7 @@ class Koordinatensystem():
             (x1, y1), (x2, y2) = verbindung
             plt.plot((x1, x2), (y1, y2), farbe)
 
-        # x_koords = []
-        # y_koords = []
-        # for verbindung in liste_verbindungen:
-        #     (x1, y1), (x2, y2) = verbindung
-        #     x_koords.extend((x1, x2))
-        #     y_koords.extend((y1, y2))
-
-        # plt.plot(x_koords, y_koords)
-
-    def zeichnePfad(self, pfad: list, farbe: str, label: str):
+    def zeichnePfad(self, pfad: list, farbe: str):
         """ Zeichnet einen gegebenen Pfad mit der gegebenen Farbe und Label auf dem Koordinatensystem
             Format des gegebenen Pfads: [(x1, y1), (x2, y2), (x3, y3), ...], 
             wobei der Punkt P1 mit P2 und P2 mit P3 etc. verbunden ist            
@@ -665,362 +754,22 @@ class Koordinatensystem():
                 knoten2 = pfad[i]
                 liste_verbindungen.append((knoten1, knoten2))
 
-        self.zeichneWeg(liste_verbindungen, farbe, label)
+        self.zeichneWeg(liste_verbindungen, farbe)
 
     def show(self):
         """ Koordinatensystem wird sichtbar angezeigt """
-        plt.legend(loc='upper left', frameon=True)
+        # plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ax = plt.gca()       
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])        
+        
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        
         plt.show()
 
 
 if __name__ == '__main__':
-    eingabe0 = """
-    14
-    (0,0)
-    (4,3)
-    (0,0) (0,1)
-    (0,1) (0,2)
-    (0,2) (0,3)
-    (0,1) (1,1)
-    (0,2) (1,1)
-    (0,2) (1,3)
-    (0,3) (1,3)
-    (1,1) (2,2)
-    (1,3) (2,2)
-    (1,3) (2,3)
-    (2,2) (2,3)
-    (2,2) (3,3)
-    (2,3) (3,3)
-    (3,3) (4,3)
-    """.split()
-
-    eingabe2 = """ 
-    162
-    (0,0)
-    (9,0)
-    (2,0) (4,1)
-    (0,2) (1,4)
-    (1,3) (2,3)
-    (0,1) (1,2)
-    (5,2) (5,3)
-    (1,7) (0,5)
-    (7,2) (7,3)
-    (1,5) (2,7)
-    (4,1) (5,1)
-    (2,0) (3,0)
-    (4,1) (3,0)
-    (2,2) (3,2)
-    (3,1) (1,0)
-    (1,6) (0,4)
-    (1,5) (2,5)
-    (5,1) (6,1)
-    (0,0) (0,1)
-    (4,1) (4,0)
-    (0,2) (0,1)
-    (9,7) (9,6)
-    (5,1) (4,0)
-    (6,1) (7,1)
-    (9,6) (8,5)
-    (4,1) (3,1)
-    (5,1) (5,0)
-    (5,1) (5,2)
-    (3,2) (2,1)
-    (5,1) (6,2)
-    (9,5) (8,4)
-    (5,1) (7,2)
-    (7,1) (5,0)
-    (2,1) (4,2)
-    (9,5) (9,4)
-    (6,1) (7,2)
-    (7,1) (6,0)
-    (4,0) (5,0)
-    (9,5) (8,3)
-    (7,1) (7,0)
-    (7,1) (7,2)
-    (2,1) (3,1)
-    (4,2) (3,1)
-    (7,1) (8,2)
-    (5,0) (6,0)
-    (5,2) (3,1)
-    (6,2) (7,2)
-    (8,7) (6,6)
-    (8,6) (7,5)
-    (8,5) (7,4)
-    (9,7) (7,6)
-    (9,6) (7,5)
-    (9,5) (7,4)
-    (7,0) (8,2)
-    (7,0) (8,0)
-    (7,2) (8,2)
-    (8,2) (9,2)
-    (7,0) (8,1)
-    (3,6) (2,5)
-    (3,6) (3,7)
-    (2,7) (2,6)
-    (7,0) (9,1)
-    (8,2) (8,1)
-    (6,3) (7,5)
-    (3,6) (5,7)
-    (8,0) (9,1)
-    (8,2) (9,1)
-    (9,0) (9,1)
-    (9,2) (9,1)
-    (3,6) (4,7)
-    (5,4) (7,5)
-    (3,5) (2,4)
-    (2,6) (3,7)
-    (6,4) (7,5)
-    (4,4) (4,5)
-    (7,4) (7,5)
-    (0,5) (0,4)
-    (5,4) (4,5)
-    (8,1) (9,1)
-    (1,4) (3,5)
-    (2,5) (4,6)
-    (6,6) (6,5)
-    (6,6) (5,5)
-    (5,7) (4,6)
-    (6,5) (7,6)
-    (2,4) (4,5)
-    (6,6) (4,5)
-    (3,4) (4,5)
-    (4,6) (4,5)
-    (4,6) (6,7)
-    (7,7) (5,6)
-    (4,5) (5,6)
-    (5,6) (6,7)
-    (1,7) (0,6)
-    (1,6) (2,7)
-    (1,5) (3,6)
-    (1,6) (0,5)
-    (1,5) (2,6)
-    (8,7) (9,7)
-    (1,5) (0,4)
-    (8,6) (9,6)
-    (8,5) (9,5)
-    (1,4) (1,5)
-    (9,4) (8,3)
-    (9,4) (9,3)
-    (8,4) (6,3)
-    (8,3) (9,3)
-    (8,4) (7,3)
-    (8,7) (7,7)
-    (8,6) (7,6)
-    (8,5) (7,5)
-    (8,4) (7,4)
-    (6,3) (7,3)
-    (4,4) (5,4)
-    (6,3) (6,4)
-    (3,6) (2,6)
-    (6,3) (5,3)
-    (5,4) (4,3)
-    (5,4) (6,4)
-    (1,1) (1,2)
-    (4,4) (3,3)
-    (3,5) (2,5)
-    (4,3) (6,4)
-    (5,4) (3,3)
-    (4,3) (5,3)
-    (6,4) (5,3)
-    (3,6) (4,6)
-    (4,3) (3,3)
-    (0,0) (1,1)
-    (2,2) (1,1)
-    (3,7) (4,7)
-    (1,2) (3,3)
-    (5,1) (6,3)
-    (7,5) (6,5)
-    (6,6) (7,6)
-    (2,2) (4,3)
-    (3,2) (1,1)
-    (1,2) (2,3)
-    (3,3) (2,3)
-    (3,3) (3,4)
-    (2,4) (2,3)
-    (2,4) (3,4)
-    (7,2) (8,4)
-    (6,5) (5,5)
-    (0,0) (1,0)
-    (0,0) (1,2)
-    (2,0) (1,0)
-    (1,4) (0,4)
-    (1,4) (2,4)
-    (2,3) (3,4)
-    (3,2) (5,3)
-    (5,2) (6,3)
-    (5,5) (4,5)
-    (4,6) (5,6)
-    (0,2) (0,3)
-    (0,2) (2,3)
-    (1,4) (0,3)
-    (1,3) (2,4)
-    (1,7) (2,7)
-    (8,2) (8,3)
-    (8,2) (9,3)
-    (4,2) (5,3)
-    (7,2) (6,3)
-    (9,2) (9,3)
-    """.split()
-
-    eingabe1 = """
-    148
-    (0,0)
-    (14,0)
-    (2,0) (4,1)
-    (1,3) (0,3)
-    (1,3) (3,4)
-    (0,1) (1,2)
-    (2,1) (1,0)
-    (5,2) (5,3)
-    (10,2) (10,3)
-    (14,2) (14,3)
-    (10,2) (11,3)
-    (4,1) (5,1)
-    (6,2) (7,4)
-    (11,2) (11,3)
-    (2,0) (3,0)
-    (4,1) (3,0)
-    (0,2) (1,3)
-    (2,2) (3,2)
-    (3,1) (1,0)
-    (8,1) (9,3)
-    (12,1) (13,3)
-    (0,0) (0,1)
-    (4,1) (4,0)
-    (4,1) (4,2)
-    (0,2) (0,1)
-    (2,2) (2,1)
-    (5,1) (4,0)
-    (2,0) (3,1)
-    (4,1) (3,1)
-    (5,1) (5,0)
-    (5,1) (5,2)
-    (3,2) (4,2)
-    (1,3) (0,1)
-    (5,1) (6,2)
-    (5,1) (7,2)
-    (7,1) (5,0)
-    (2,1) (4,2)
-    (6,1) (7,2)
-    (7,1) (6,0)
-    (4,0) (5,0)
-    (6,1) (8,2)
-    (7,1) (7,0)
-    (2,1) (3,1)
-    (5,0) (6,0)
-    (6,2) (7,2)
-    (7,0) (8,2)
-    (7,0) (8,0)
-    (7,2) (8,2)
-    (9,0) (10,2)
-    (10,0) (11,0)
-    (10,2) (11,2)
-    (7,0) (8,1)
-    (7,0) (9,1)
-    (11,2) (12,2)
-    (8,2) (8,1)
-    (8,0) (9,1)
-    (9,2) (8,1)
-    (12,0) (13,0)
-    (10,2) (8,1)
-    (9,0) (10,1)
-    (10,2) (9,1)
-    (13,0) (14,0)
-    (10,0) (10,1)
-    (10,2) (10,1)
-    (10,0) (11,1)
-    (11,2) (10,1)
-    (10,0) (12,1)
-    (12,2) (10,1)
-    (11,0) (12,1)
-    (11,0) (13,1)
-    (12,2) (12,1)
-    (12,0) (13,1)
-    (13,2) (12,1)
-    (12,0) (14,1)
-    (13,2) (13,1)
-    (13,0) (14,1)
-    (14,2) (13,1)
-    (14,0) (14,1)
-    (14,2) (14,1)
-    (10,1) (11,1)
-    (11,1) (12,1)
-    (12,1) (13,1)
-    (13,1) (14,1)
-    (12,3) (13,3)
-    (8,4) (9,4)
-    (13,3) (14,3)
-    (9,4) (10,4)
-    (12,3) (13,4)
-    (9,4) (8,3)
-    (12,3) (14,4)
-    (12,3) (11,3)
-    (13,3) (14,4)
-    (10,4) (9,3)
-    (11,4) (12,4)
-    (14,3) (14,4)
-    (11,4) (9,3)
-    (11,4) (10,3)
-    (8,4) (7,3)
-    (11,4) (11,3)
-    (9,4) (7,3)
-    (12,4) (11,3)
-    (9,3) (10,3)
-    (13,4) (14,4)
-    (8,4) (7,4)
-    (8,3) (7,3)
-    (6,3) (5,4)
-    (4,4) (5,4)
-    (6,3) (5,3)
-    (6,3) (7,4)
-    (5,4) (5,3)
-    (5,4) (3,3)
-    (6,4) (7,4)
-    (1,1) (2,3)
-    (4,4) (2,3)
-    (4,4) (3,4)
-    (4,3) (3,3)
-    (0,0) (1,1)
-    (2,2) (1,1)
-    (5,1) (6,3)
-    (1,2) (2,3)
-    (3,3) (2,3)
-    (2,4) (0,3)
-    (2,4) (3,4)
-    (4,1) (5,3)
-    (3,2) (4,3)
-    (0,0) (1,0)
-    (0,0) (1,2)
-    (2,0) (1,0)
-    (2,2) (3,3)
-    (2,3) (3,4)
-    (1,4) (0,4)
-    (1,4) (2,4)
-    (2,1) (1,1)
-    (6,2) (8,3)
-    (3,2) (5,3)
-    (7,2) (8,3)
-    (7,2) (9,3)
-    (11,2) (12,3)
-    (0,2) (0,3)
-    (1,4) (0,3)
-    (1,3) (2,4)
-    (6,2) (6,3)
-    (11,2) (13,3)
-    (10,2) (11,4)
-    (12,2) (13,3)
-    (4,2) (5,3)
-    (9,2) (9,3)
-    (13,2) (13,3)
-    (10,2) (9,3)
-    (13,2) (14,3)    
-    """.split()
-
-    b = Berechnungen(eingabe1)
-
-    g = Graph()
-
-    g.add_Kante(0, 1, 1)
-    g.add_Kante(1, 3, 2)
-
-    print(g[3])
+    root = tk.Tk()
+    root.title("Eingabefenster")
+    EingabeFenster(root).pack(side="top", fill="both", expand=True)
+    root.mainloop()
