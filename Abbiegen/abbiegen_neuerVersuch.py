@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import numpy as np
 import time
-
 import sys
 # Import von Tkinter
 if sys.version_info.major == 2:
@@ -236,46 +235,6 @@ class Berechnungen:
         # der in diesem Teilgraphen optimalster Pfad wird zusammen mit seinen Eigenschaften zurückgegeben.
         return bisher_optimalster_pfad, länge_bisherOptimalsterPfad, anzahl_abbiegen_bisherOptimalsterPfad
 
-    def pfadMitGrößerAnzahlAbbiegenImBereich(self, graph, start: tuple, end, max_länge: int, pfad=[], bisher_optimalster_pfad=None, länge_bisherOptimalsterPfad=math.inf, anzahl_abbiegen_bisherOptimalsterPfad=math.inf):
-
-        # Startknoten wird zum aktuellen Pfad hinzugefügt
-        pfad.append(start)
-
-        # Länge des aktuellen Pfads wird berechnet
-        länge_aktueller_pfad = self.berechneLängePfad(pfad)
-
-        # Länge des aktuellen Pfads darf nicht länger als die maximale Länge sein
-        if länge_aktueller_pfad < max_länge:
-
-            # die Anzahl der Abbiegevorgänge des aktuellen Pfads wird berechnet
-            anzahl_abbiegen_aktueller_pfad = self.berechneAnzahlAbbiegenPfad(
-                pfad)
-
-            # die Anzahl der Abbiegevorgänge des aktuellen Pfads sollen weniger sein als beim bisher optimalsten Pfad
-            if anzahl_abbiegen_aktueller_pfad <= anzahl_abbiegen_bisherOptimalsterPfad:
-
-                if start == end:
-
-                    if anzahl_abbiegen_bisherOptimalsterPfad == anzahl_abbiegen_aktueller_pfad:
-
-                        if länge_aktueller_pfad < länge_bisherOptimalsterPfad:
-                            bisher_optimalster_pfad = pfad
-
-                    else:
-
-                        bisher_optimalster_pfad = pfad
-
-                for nachfolger_item in graph[start]:
-
-                    knoten, gewichtung = nachfolger_item[0]
-
-                    if knoten not in pfad:
-                        bisher_optimalster_pfad = self.pfadMitGrößerAnzahlAbbiegenImBereich(graph, knoten, end, max_länge,
-                                                            pfad.copy(), bisher_optimalster_pfad, länge_bisherOptimalsterPfad, anzahl_abbiegen_bisherOptimalsterPfad)
-
-        return bisher_optimalster_pfad
-
-
     def heuristik_dfs(self, knoten: tuple, aktueller_pfad: list):
         """ Funktion zur Optimierung der Tiefensuche der Methode minAbbiegenPfad()
         
@@ -367,7 +326,7 @@ class Berechnungen:
         
         Im gegebenen Graph soll vom Start- zum Zielknoten der kürzeste Weg berechnet werden.
         Dabei wird eine Schätzfunktion verwendet, um das Verfahren zu optimieren, indem der Abstand zum Zielknoten berechnet wird.
-        Als Schätzfunktion wird die Methode heuristik_astar verwendet, welche die Luftlinie berechnet.
+        Als Schätzfunktion wird die Methode heuristik_astar() verwendet, welche die Luftlinie berechnet.
             
         Args: 
             start (tuple): Startknoten
