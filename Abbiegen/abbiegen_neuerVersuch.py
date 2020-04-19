@@ -110,6 +110,7 @@ class Berechnungen:
         # optimaler Pfad wird ermittelt
         optimaler_pfad, länge_optimaler_pfad, anzahl_abbiegen_optimaler_pfad = self.optimalsterPfad(self.graph, self.startpunkt,
                                                                                                     self.zielpunkt, maximale_länge)
+            
         umweg_optimaler_imVergleich_kürzester = länge_optimaler_pfad - länge_kürzester_weg
 
 
@@ -140,6 +141,8 @@ class Berechnungen:
         # Zeitmessung wird beendet
         ende_zeit = time.time()
 
+        
+        #### Konsolenausgaben        
         # Kürzester
         print(f"> Kürzester Weg: {kürzester_weg}")
         print(f" >> Länge kürzester Weg: {länge_kürzester_weg}")
@@ -196,7 +199,7 @@ class Berechnungen:
         länge_aktueller_pfad = self.berechneLängePfad(pfad)
 
         # Länge des aktuellen Pfads darf nicht länger als die maximale Länge sein
-        if länge_aktueller_pfad < max_länge:
+        if länge_aktueller_pfad <= max_länge:
 
             # die Anzahl der Abbiegevorgänge des aktuellen Pfads wird berechnet
             anzahl_abbiegen_aktueller_pfad = self.berechneAnzahlAbbiegenPfad(pfad)
@@ -222,9 +225,14 @@ class Berechnungen:
                         bisher_optimalster_pfad = pfad
                         länge_bisherOptimalsterPfad = länge_aktueller_pfad
                         anzahl_abbiegen_bisherOptimalsterPfad = anzahl_abbiegen_aktueller_pfad
-
-                for nachfolger_item in graph[start]:
-
+                
+                
+                # Die Nachfolgeknoten werden anhand ihrem Abstand zum Zielknoten aufsteigend sortiert
+                sortierte_liste_nachfolger = sorted(graph[start],
+                                                    key=lambda item: self.berechneLänge(item[0][0], self.zielpunkt))
+                                      
+                for nachfolger_item in sortierte_liste_nachfolger:
+                    
                     knoten, gewichtung = nachfolger_item[0]
 
                     # rekursiver Aufruf mit den Nachfolgerknoten
@@ -234,6 +242,7 @@ class Berechnungen:
 
         # der in diesem Teilgraphen optimalster Pfad wird zusammen mit seinen Eigenschaften zurückgegeben.
         return bisher_optimalster_pfad, länge_bisherOptimalsterPfad, anzahl_abbiegen_bisherOptimalsterPfad
+
 
     def heuristik_dfs(self, knoten: tuple, aktueller_pfad: list):
         """ Funktion zur Optimierung der Tiefensuche der Methode minAbbiegenPfad()
@@ -260,7 +269,6 @@ class Berechnungen:
         else:
             return 0
 
-
     def minAbbiegenPfad(self, graph, start: tuple, ziel: tuple, pfad=[], bisher_minAbbiegen_pfad=None, anzahl_abbiegen_bisherMinAbbiegen_pfad=math.inf):
         """ Methode zum Berechnen des Pfades mit minimalen Abbiegen ohne Eingrenzung
         
@@ -286,10 +294,10 @@ class Berechnungen:
             float. Anzahl der Abbiegevorgänge des optimalesten Pfades wird zurückgegeben.        
         """
         
-        # Akuteller Startknoten wird zum aktuellen Knoten hinzugefügt
+        # Aktueller Startknoten wird zum aktuellen Knoten hinzugefügt
         pfad.append(start)
         
-        # Die Anzahl der Abbiegevorgänge im akutellen Pfad werden berechent
+        # Die Anzahl der Abbiegevorgänge im aktuellen Pfad werden berechnet
         anzahl_abbiegen_aktueller_pfad = self.berechneAnzahlAbbiegenPfad(pfad)
         
         # Falls diese Anzahl geringer als die Anzahl der Abbiegevorgänge des bisher 'besten' Pfades ist,
@@ -314,7 +322,7 @@ class Berechnungen:
                 
                 if nachfolger not in pfad:
 
-                    # die Methode wird rekursiv aufgeru
+                    # die Methode wird rekursiv aufgerufen
                     bisher_minAbbiegen_pfad, anzahl_abbiegen_bisherMinAbbiegen_pfad = self.minAbbiegenPfad(graph, nachfolger,
                                                                                                             ziel, pfad.copy(), bisher_minAbbiegen_pfad, anzahl_abbiegen_bisherMinAbbiegen_pfad)
         
@@ -463,7 +471,7 @@ class Berechnungen:
         sum = 0
         for i in range(len(pfad)):
             if i > 0:
-                # Für den akutellen Punkt und seinen Vorgängerpunkt wird der Abstand berechnet.
+                # Für den aktuellen Punkt und seinen Vorgängerpunkt wird der Abstand berechnet.
                 sum += self.berechneLänge(pfad[i-1], pfad[i])
         return sum
 
@@ -492,7 +500,7 @@ class Berechnungen:
 
         for i in range(len(steigungen)):
             
-            # die Steigung der akutellen Strecke wird zugewiesen
+            # die Steigung der aktuellen Strecke wird zugewiesen
             aktuell = steigungen[i]
             
             # falls es eine Strecke vor der aktuellen Strecke gibt
@@ -636,9 +644,7 @@ class EingabeFenster(tk.Frame):
         eingabe = self.textfeld_straßenkarte.get('1.0', 'end').split()
         maximale_verlängerung = int(self.textfeld_maximaleVerlängerung.get())
         
-        erweiterung = True if self.erweiterung.get() == 1 else False
-        print("Erweiterung: ", erweiterung)
-        
+        erweiterung = True if self.erweiterung.get() == 1 else False        
         
         # Eingabefenster wird geschlossen
         self.destroy()
