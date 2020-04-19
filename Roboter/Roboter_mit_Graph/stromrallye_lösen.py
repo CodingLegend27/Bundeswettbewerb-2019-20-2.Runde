@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # 2. Runde Bundeswettbewerb Informatik 2019/20
 # Autor: Christoph Waffler
 # Aufgabe 1: Stromrallye (Lösen)
@@ -19,8 +21,7 @@ else:
 import math
 
 class Berechnungen:
-    def __init__(self, eingabe: list, gegen_wand: bool):
-        self.gegen_wand = gegen_wand
+    def __init__(self, eingabe: list):
         # Größe des quadratischen Spielfelds
         self.size = int(eingabe.pop(0))
 
@@ -42,7 +43,7 @@ class Berechnungen:
             eingabe (str): String mit unformatierter Eingabe, Aufbau der Eingabe: 'x, y, ladung'
         
         Returns:
-            ein Tuple mit der x-, y-Koordinate und der Ladung, die als int dargestellt werden            
+            tuple. Tuple mit der x-, y-Koordinate und der Ladung, die als int dargestellt werden.   
         """
         # erste Stelle des Kommas wird bestimmt
         ind_komma_1 = eingabe.find(',', 0, -1)
@@ -66,6 +67,10 @@ class Berechnungen:
     def main(self):
         """ Hauptmethode des gesamten Programms
         """
+        
+        # Start der Zeitmessung
+        start_zeit = time.time()
+        
         # ein Graph der Klasse Graph wird erzeugt
         self.graph = Graph()
         
@@ -129,18 +134,25 @@ class Berechnungen:
         
         # Der Pfad beinhaltet die Punkte auf dem Spielbrett, zu welchem der Roboter geht.
         # Am Ende hat der Roboter noch eine restliche Ladung, welche die Methode dfs ebenfalls zurückgibt.
-        
+
         # die restliche Ladung wird später dann noch "verbraucht".
         return_item = self.dfs(
             graph=self.graph,
             aktueller_knoten=self.roboter[:2],
-            alte_ladung=None,
-            a_alte_ladung=None, 
+            alte_ladung=0,
+            a_alte_ladung=0, 
             aktuelle_ladung_batterien=aktuelle_ladung_batterien)
         
         # falls kein Pfad gefunden wurde:
         if not return_item:
-            print(">> Kein Pfad wurde gefunden!")
+            
+            # Hier wird auch die Laufzeit ermittelt
+            ende_zeit = time.time()
+            
+            print(">> Die eingegebene Spielsituation ist nicht lösbar! \nKein Pfad wurde gefunden!")
+            
+            print(f"\n>> Laufzeit des Programms: {ende_zeit-start_zeit} Sekunden \n (Start der Zeitmessung bei Aufruf der main-Methode)")
+            
             messagebox.showerror("Fehler", "Kein Pfad gefunden!")
             return
 
@@ -255,12 +267,17 @@ class Berechnungen:
             elif schritt == 3:
                 abfolge_schritte_deutsch.append('rechts')
                 
-        print(f"\n>> Abfolge von Schritten für den Roboter in deutscher Sprache: \n > {abfolge_schritte_deutsch}")
+        ende_zeit = time.time()
+                        
+        print(f"\n>> Abfolge von {len(abfolge_schritte_deutsch)} Schritten für den Roboter in deutscher Sprache: \n > {abfolge_schritte_deutsch}")
+        
+        print(f"\n>> Laufzeit des Programms: {ende_zeit-start_zeit} Sekunden \n (Start der Zeitmessung bei Aufruf der main-Methode)")
         
         # Umgebung wird erstellt
         env = Environment(self.size, self.roboter,
                           self.anzahl_batterien, self.batterien)
         
+        env._update_gui()
         # für jeden Schritt wird die Umgebung aufgerufen
         for schritt in abfolge_schritte:
             env.step(schritt)
@@ -466,7 +483,7 @@ class Berechnungen:
             return None
 
     def findeFreieNachbarpunkte(self, x_akt, y_akt, potenzielle_hindernisse):
-        """ Methode zum Ermitteln freier nachbarpunkte.
+        """ Methode zum Ermitteln freier Nachbarpunkte.
         
         Diese prüft ob die Nachbarpunkte des gegebenen Punktes frei sind, d.h. dass dort keine Ersatzbatterien sind.
         Überprüft werden dabei:
@@ -531,50 +548,22 @@ class Berechnungen:
             # In dieser Aufgabe ist die minimale Koordinate 1 
             # und die maximale Koordinate die Größe des Spielfelds
 
-            # aktuelle Position ist ganz oben links (Eckpunkt)
-            # erreichbare Nachbarpunkte sind daher rechts und unten
-            if y_akt == 1 and x_akt == 1:
-                nachbarn.extend((rechts, unten))
-                
-            # aktuelle Position ist ganz oben rechts (Eckpunkt)
-            # erreichbare Nachbarpunkte sind unten und links
-            elif y_akt == 1 and x_akt == self.size:
-                nachbarn.extend((unten, links))
-                
-            # aktuelle Position ist ganz oben am Rand und in keiner Ecke
-            # erreichbare Nachbarpunkte sind unten, links, rechts
-            elif y_akt == 1:
-                nachbarn.extend((unten, links, rechts))
-                
-            # aktuelle Position ist ganz unten rechts (Eckpunkt)
-            # erreichbare Nachbarpunkte sind oben und links
-            elif y_akt == self.size and x_akt == self.size:
-                nachbarn.extend((oben, links))
-                
-            # aktuelle Position ist ganz unten links (Eckpunkt)
-            # erreichbare Nachbarpunkte sind oben und rechts
-            elif y_akt == self.size and x_akt == 1:
-                nachbarn.extend((oben, rechts))
-                                        
-            # aktuelle Position ist ganz unten am Rand und in keiner Ecke
-            # erreichbare Nachbarpunkte sind oben, rechts und links
-            elif y_akt == self.size:
-                nachbarn.extend((oben, rechts, links))
-                
-            # aktuelle Position ist ganz rechts am Rand und in keiner Ecke
-            # erreichbare Nachbarpunkte sind oben, unten und links
-            elif x_akt == self.size:
-                nachbarn.extend((oben, unten, links))
+            # aktuelle Position nicht am ganz oberen Rand
+            if y_akt > 1:
+                nachbarn.append(oben)
             
-            # aktuelle Position ist ganz links am Rand und in keiner Ecke
-            # erreichbare Nachbarpunkte sind oben, unten und rechts
-            elif x_akt == 1:
-                nachbarn.extend((oben, unten, rechts))
-                
-            # die aktuelle Position befindet sich nicht am Rand und auch in keiner Ecke
-            # erreichbare Nachbarpunkte sind oben, unten, rechts und unten
-            else:
-                nachbarn.extend((oben, unten, rechts, links))
+            # aktuell nicht ganz unten am Rand
+            if y_akt < self.size:
+                nachbarn.append(unten)
+            
+            # aktuell nicht ganz links am Rand         
+            if x_akt > 1:
+                nachbarn.append(links)
+            
+            # nicht ganz rechts am Rand
+            if x_akt < self.size:
+                nachbarn.append(rechts)
+            
 
             return nachbarn
 
@@ -584,7 +573,7 @@ class Berechnungen:
         
         Im gegebenen Graph soll vom Start- zum Zielknoten der kürzeste Weg berechnet werden.
         Dabei wird eine Schätzfunktion verwendet, um das Verfahren zu optimieren, indem der Abstand zum Zielknoten berechnet wird.
-        Als Schätzfunktion wird die Methode heuristik verwendet, welche die Manhattan-Distanz berechnet.
+        Als Schätzfunktion wird die Methode heuristik_astar verwendet, welche die Manhattan-Distanz berechnet.
             
         Args: 
             start (tuple): Startknoten
@@ -603,18 +592,19 @@ class Berechnungen:
 
         # Initialisierung der Startwerte
         G[start] = 0
-        F[start] = self.heuristisch(start, ziel)
+        F[start] = self.heuristik_astar(start, ziel)
 
         # offene und geschlossene Knoten werden in einem Set gespeichert
         geschlossene_knoten = set()
         # zu Beginn wird der Startknoten zu den offenen Knoten hinzugefügt
         offene_knoten = set([start])
+        # Verlauf des Wegs wir in gekommen_von gespeichert
         gekommen_von = {}
 
         # Solange noch ein Knoten offen ist:
         while len(offene_knoten) > 0:
             
-            # Wähle die Knoten von der offenen Liste aus, die den geringsten F-Wert besitzen
+            # Wähle den Knoten von der offenen Liste aus, der den geringsten F-Wert besitzen
             aktueller_knoten = None
             aktueller_F_wert = None
 
@@ -642,7 +632,7 @@ class Berechnungen:
             offene_knoten.remove(aktueller_knoten)
             geschlossene_knoten.add(aktueller_knoten)
 
-            # Aktualisierung der Werte für die Knoten neben dem aktuellen Knoten
+            # Aktualisierung der Werte für die Nachbarknoten neben dem aktuellen Knoten
             for item in graph[aktueller_knoten]:
                 nachbar_knoten, gewichtung = item[0]
 
@@ -650,29 +640,29 @@ class Berechnungen:
                     # dieser Knoten wurde bereits ausgeschöpft
                     continue
                 
-                kandidatG = G[aktueller_knoten] + gewichtung
+                g_wert_kandidat = G[aktueller_knoten] + gewichtung
 
                 # falls der Nachbarknoten noch nicht offen ist, 
                 # wird er als offener gespeichert
                 if nachbar_knoten not in offene_knoten:
                     offene_knoten.add(nachbar_knoten)
                 
-                elif kandidatG >= G[nachbar_knoten]:
+                elif g_wert_kandidat >= G[nachbar_knoten]:
                     # Wenn der G-Wert schlechter als der vorher gefundene ist
                     continue
 
                 # G-Wert wird angepasst
                 gekommen_von[nachbar_knoten] = aktueller_knoten
-                G[nachbar_knoten] = kandidatG
+                G[nachbar_knoten] = g_wert_kandidat
                 
                 # Abstand zum Zielknoten wird geschätzt
-                H = self.heuristisch(nachbar_knoten, ziel)
+                H = self.heuristik_astar(nachbar_knoten, ziel)
                 F[nachbar_knoten] = G[nachbar_knoten] + H
         
         # Falls kein Weg gefunden wurde wird None zurückgegeben
         return None
 
-    def heuristisch(self, knoten1, knoten2):
+    def heuristik_astar(self, knoten1, knoten2):
         """ Methode als heuristische Funktion im A*-Algorithmus
         
         Es wird die Manhattan-Distanz zwischen zwei Knoten berechnet.
@@ -684,18 +674,18 @@ class Berechnungen:
         Returns:
             float. Manhatten-Distanz zwischen den beiden Knoten
         """
-        
+
         return self.manhattanDistanz(*knoten1, *knoten2)
 
 
     def dfs(self, graph, aktueller_knoten, alte_ladung, a_alte_ladung, aktuelle_ladung_batterien, pfad=[]):
-        """ Methode zur rekursiven Tiefsuche im gegebenen Graphen        
+        """ Methode zur rekursiven Tiefensuche im gegebenen Graphen        
         
         Args:
             graph (Graph): Graph als Datenstruktur zum Speichern der aktuellen Kantenbeziehungen der Ersatzbatterien
             aktueller_knoten (tuple): aktuell ausgewählter Knoten, der zum Pfad hinzugefügt wird
             alte_ladung (int): Ladung des vorherigen Knotens, die als a_alte_ladung im nächsten Schritt weitergegeben wird
-            a_alte_ladung (int): veränderte Ladung der vorvorherig besuchten Batterie, dessen Ladung nun verändert wird
+            a_alte_ladung (int): veränderte Ladung der vorvorherig besuchten Batterie, dessen Ladung nun aktualisiert wird
             aktuelle_ladung_batterien (dict): Dictionary zum Speichern der aktuellen Ladungen der Batterien
             pfad (list): Liste zum Speichern der besuchten Batterien (Knoten des Graphen)
             
@@ -704,7 +694,8 @@ class Berechnungen:
         """
         # aktueller Knoten wird zum Pfad hinzugefügt
         pfad.append(aktueller_knoten)
-
+        #print(f"> Pfad: {pfad}")
+        
         # ist der Pfad länger als 2 Elemente, so wird immer die Ladung des Vorvorgängers aktualisiert
         if len(pfad) > 2:
             
@@ -716,24 +707,16 @@ class Berechnungen:
             
             # nur wenn die 'neue' (a_alte_ladung) des alten Knotens sich von der bisherigen Ladung unterscheidet,
             # ändern sich auch die erreichbaren anderen Ersatzbatterien von der aktuellen Position ausgehend
-            # und somit auch die Kinderknoten im Graphen
+            # und somit auch die Nachbarknoten im Graphen
             if a_alte_ladung != bisherige_ladung:
                                 
                 # Aktualisierung des Dictionary zum Speichern der aktuellen Ladungen
                 # die Ladung des vorvorletzten Elements wird auf a_alte_ladung gesetzt
                 aktuelle_ladung_batterien[alter_knoten] = a_alte_ladung
 
-                # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten der Batterien des Dictionary aktuelle_ladung_batterien benötigt,
-                # die aktuell eine Ladung > 0 besitzten
-                
-                # 1. Filtern der Batterien mit Ladung > 0
-                restliche_batterien = list(filter(
-                    lambda batterie: batterie[1] > 0, list(aktuelle_ladung_batterien.items())
-                ))
-                
-                # 2. Nur die x- und y-Koordinaten werden benötigt
-                restliche_batterien = list( map(lambda batterie: batterie[0], restliche_batterien))
-                
+                # restliche Batterien werden ermittelt
+                restliche_batterien = self.filterListeBatterien(aktuelle_ladung_batterien)
+
                 # aufgrund der veränderten Ladung des Vorvorgängers werden nun seine erreichbaren Batterien neu ermittelt
                 erreichbare_batterien_neu = self.erreichbareBatterien(*alter_knoten, a_alte_ladung, restliche_batterien)
                 
@@ -747,16 +730,9 @@ class Berechnungen:
                 graph.aktualisiereNachfolger(alter_knoten, erreichbare_batterien_neu)
                 
             else:
-                # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt, die aktuell eine Ladung > 0 besitzten
-                # 1. Filtern der Batterien mit Ladung > 0
-                restliche_batterien = list(filter(
-                    lambda batterie: batterie[1] > 0, list(
-                        aktuelle_ladung_batterien.items())
-                ))
-                # 2. Nur die x- und y-Koordinaten werden benötigt
-                restliche_batterien = list(
-                    map(lambda batterie: batterie[0], restliche_batterien))
-                
+                # restliche Batterien werden ermittelt
+                restliche_batterien = self.filterListeBatterien(aktuelle_ladung_batterien)
+
         else:
             # Da der Roboter sich am Anfang bewegt und sozusagen keine Ersatzbatterie 'hinterlässt',
             # wird die Postion aus dem Dictionary gelöscht,
@@ -764,15 +740,8 @@ class Berechnungen:
             if len(pfad) == 2:
                 del aktuelle_ladung_batterien[(self.roboter[0], self.roboter[1])]
                 
-            # als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt, die aktuell eine Ladung > 0 besitzten
-            # 1. Filtern der Batterien mit Ladung > 0
-            restliche_batterien = list(filter(
-                lambda batterie: batterie[1] > 0, list(
-                    aktuelle_ladung_batterien.items())
-            ))
-            # 2. Nur die x- und y-Koordinaten werden benötigt
-            restliche_batterien = list(
-                map(lambda batterie: batterie[0], restliche_batterien))
+            # restliche Batterien werden ermittelt
+            restliche_batterien = self.filterListeBatterien(aktuelle_ladung_batterien)
 
 
         # die akutelle Ladung des aktuellen Knotens wird ausgelesen
@@ -782,16 +751,20 @@ class Berechnungen:
         # Falls nur noch eine Batterie übrig ist (die Batterie des aktuellen Knoten),
         # so ist die suche beendet.
         # Der Pfad und die aktuelle Ladung des aktuellen Knotens werden zurückgegeben
-        if len(restliche_batterien) == 1 and aktueller_knoten == restliche_batterien[0]:
+        if len(restliche_batterien) == 1 and aktueller_knoten == restliche_batterien[0] and alte_ladung == 0:
             return pfad, aktuelle_ladung
 
-
-        # Mithilfe der Methode abwägung() wird für jeden Kinderknoten der jeweilige Wert bestimmt.
+        
+        # Heuristik
+        # Mithilfe der Methode heuristik_dfs() wird für jeden Nachbarknoten der jeweilige Wert bestimmt.
         # Anhand dieses Werts wird die Liste absteigend sortiert,
-        # dass der Kinderknoten mit dem höchsten Wert an erster Stelle steht.
+        # dass der Nachbarknoten mit dem höchsten Wert an erster Stelle steht.
         # Somit wird die Tiefensuche beschleunigt.
         sortierte_liste_nachfolger = sorted(graph[aktueller_knoten], 
-                                            key=lambda item: self.abwägung(*item[0][0], aktuelle_ladung_batterien), reverse=True)
+                                            key=lambda item: self.heuristik_dfs(*item[0][0], aktuelle_ladung_batterien, graph), reverse=True)
+        
+        # sortierte_liste_nachfolger = sorted(graph[aktueller_knoten], 
+        #                                     key=lambda item: len(self.erreichbareBatterien(*item[0][0], item[0][1], restliche_batterien)), reverse=True)
         
         # für jeden Kindernknoten wird die Schleife aufgerufen
         for nachfolger_item in sortierte_liste_nachfolger:
@@ -803,10 +776,10 @@ class Berechnungen:
                 # Die Methode dfs wird nun rekursiv aufgerufen.
                 
                 # Dabei wird der Graph mithilfe des Moduls copy tiefenkopiert, 
-                # da sonst eine Veränderung des Graphen in einem Kinderknoten, den anderen auch beeinflussen würde.
+                # da sonst eine Veränderung des Graphen in einem Nachbarknoten, die anderen auch beeinflussen würde.
                 
-                # Der Kinderknoten ist dann der aktuelle_knoten.
-                # Die alte Ladung des vorherigen Knoten ist die Differenz zwischen dessen ursprüngliche Ladung und die Gewichtung zum Kinderknoten.
+                # Der Nachbarknoten ist dann der aktuelle_knoten.
+                # Die alte Ladung des vorherigen Knoten ist die Differenz zwischen dessen ursprüngliche Ladung und die Gewichtung zum Nachbarknoten.
                 # a_alte_ladung wird mit dem Wert von alte_ladung aufgerufen, und 'rückt somit eins weiter nach hinten'.
                 
                 # Das Dictionary zum Speichern der aktuellen Ladungen wird ebenfalls kopiert,
@@ -825,22 +798,43 @@ class Berechnungen:
 
                 # 'else:' Falls nichts zurückgegeben wird, geht dieser Teilzweig ins Leere und wird nicht weiter beachtet.
 
-    def abwägung(self, x: int, y: int, batterien_aktuelle_ladung: dict):
+    def filterListeBatterien(self, aktuelle_ladung_batterien: dict):
+        """ Als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt,
+            die aktuell eine Ladung > 0 besitzten
+            
+            Args:
+                aktuelle_ladung_batterien: Dictionary mit den aktuellen Ladungen der Batterien
+                
+            Returns:
+                list. Eine Liste mit den x- und y-Koordinaten der Batterien, die eine Ladung > 0 besitzen.
+        """
+        # 1. Filtern der Batterien mit Ladung > 0
+        restliche_batterien = list(filter(
+            lambda batterie: batterie[1] > 0, list(
+                aktuelle_ladung_batterien.items())
+        ))
+        # 2. Nur die x- und y-Koordinaten werden benötigt
+        restliche_batterien = list(
+            map(lambda batterie: batterie[0], restliche_batterien))
+
+        return restliche_batterien
+        
+    def heuristik_dfs(self, x: int, y: int, batterien_aktuelle_ladung: dict, graph):
         """ Heuristische Funktion zum Abschätzen, welcher Knoten bei der DFS als nächster ausgewählt werden soll
             --> Liefert einen Wert, der mit den anderen Nachbarn verglichen werden kann
         """
         """ Diese Methode dient als Optimierung der Tiefensuche (depth-first-search, DFS).
         
-        Diese Methode liefert einen Wert, der die Auswahl zwischen den Kinderknoten eines Knoten eines Graphen optimieren soll.
+        Diese Methode liefert einen Wert, der die Auswahl zwischen den Nachbarknoten eines Knoten eines Graphen optimieren soll.
         
-        Dabei wird der Wert zwischen den Kinderknoten verglichen 
-        und die Suche wird mit dem Kinderknoten mit dem maximialen Wert fortgesetzt.
+        Dabei wird der Wert zwischen den Nachbarknoten verglichen 
+        und die Suche wird mit dem Nachbarknoten mit dem maximialen Wert fortgesetzt.
         
         Der Wert wird von zwei Faktoren beeinflusst: 
-            - Ladung der Batterie (des aktuellen Kinderknoten)
+            - Ladung der Batterie (des aktuellen Nachbarknoten)
             - Abstand zum Startpunkt des Roboters
         
-        Die Ladung der aktuellen Batterie (=Kinderknoten) wird mithilfe des gegebenen Dictionary ermittelt.
+        Die Ladung der aktuellen Batterie (=Nachbarknoten) wird mithilfe des gegebenen Dictionary ermittelt.
         
         Da der diejenigen Knoten priorisiert werden sollen, die eine höhere Ladung haben, wird der Wert der Ladung quadriert.
         Somit ist der Betrag der Ladung gegenüber dem Abstand zum Roboter höher gewichtet
@@ -854,7 +848,7 @@ class Berechnungen:
         Returns:
             float. heuristischer Wert zum Vergleichen 
         """        
-        
+                    
         # x- und y-Koordinate des Startpunktes des Roboters werden benötigt
         roboter = self.roboter[:2]
         
@@ -891,6 +885,14 @@ class Berechnungen:
         distanz = math.sqrt(delta_x**2 + delta_y**2)
         return distanz
         
+        
+    def anzahlErreichbarerBatterien(self, x: int, y: int, ladung: int, restliche_batterien: list):
+        """ berechnet mithilfe der Methode erreichbareBatterien() die Anzahl der erreichbaren Batterien
+        """
+        erreichbare_batterien = self.erreichbareBatterien(
+            x, y, ladung, restliche_batterien)
+        anzahl = len(erreichbare_batterien)
+        return anzahl
 
 class Graph:
     """ gerichteter Graph zum Verwalten von Knoten und Kanten mit Gewichtungen """
@@ -937,7 +939,7 @@ class Graph:
         """
         return [list(n.items()) for n in self.adjazenzliste[key]]
 
-    def aktualisiereNachfolger(self, knoten, neueNachfolger: list):
+    def aktualisiereNachfolger(self, knoten, neue_nachfolger: list):
         """ Methode zur Aktualisierung der Nachfolgerknoten des gegebenen Knotens.
         
         Dabei werden neue Nachfolger hinzugefügt, nicht mehr vorhandene werden entfernt.
@@ -950,7 +952,7 @@ class Graph:
         # hier muss .copy() verwendet werden, 
         # da sonst sich die Liste ursprüngliche_nachfolger_items bei Entfernen von Knoten aus der Adjazenzliste verändert!
         ursprüngliche_nachfolger_items = self.adjazenzliste[knoten].copy()
-        for nachfolger_item in neueNachfolger:
+        for nachfolger_item in neue_nachfolger:
 
             # falls das Item nicht in den aktuellen Nachfolger Items ist,
             # muss dieses hinzugefügt werden
@@ -987,11 +989,6 @@ class EingabeFenster(tk.Frame):
         # Konfiguration der Scrollbar und des Textfelds
         self.scrollbar.config(command=self)
         self.textfeld.config(yscrollcommand=self.scrollbar.set)
-
-        # Checkbox zur Aktivierung einer Erweiterung
-        self.var1 = tk.IntVar()
-        checkbutton = tk.Checkbutton(self, text="Bei Laufen gegen die Wand auf der anderen Seite herauskommen", variable=self.var1)
-        checkbutton.pack(side=tk.BOTTOM)
         
         # Button zum Starten
         self.button_start = tk.Button(
@@ -1009,17 +1006,9 @@ class EingabeFenster(tk.Frame):
         # Eingabefenster wird geschlossen
         self.destroy()
         
-        # gegen_wand gibt an, ob der Roboter gegen die Wand laufen kann 
-        # und dabei bei der gegenüberliegenden Seite herauskommen kann
-        gegen_wand = True if self.var1.get()==1 else False
-        
         # Ruft die Klasse berechnungen auf, welche den Pfad berechnet,
         # den der Roboter zurücklegen muss, damit alle Batterien leer sind                
-        b = Berechnungen(eingabe, gegen_wand)
-
-
-
-
+        b = Berechnungen(eingabe)
 
 class Environment(tk.Tk, object):
 

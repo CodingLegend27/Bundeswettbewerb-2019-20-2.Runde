@@ -1,3 +1,6 @@
+#!/usr/bin/python
+
+
 # 2. Runde Bundeswettbewerb Informatik 2019/20
 # Autor: Christoph Waffler
 # Aufgabe 1: Stromrallye (Spielen)
@@ -14,7 +17,7 @@ class SpielErzeugen:
             - 2 --> mittel
             - 3 --> schwer
         """
-        
+        self.schwierigkeit = schwierigkeit
         # Quadratisches Spielfeld mit 8 x 8 Feldern
         self.size = 8
                
@@ -27,40 +30,80 @@ class SpielErzeugen:
         startpunkt = [x_start, y_start]
         
         # Bereich der Schritte festlegen
-        if schwierigkeit == 1:
+        if self.schwierigkeit == 1:
             self.max_bereich_schritte = [1, 5]
-        elif schwierigkeit == 2:
+        elif self.schwierigkeit == 2:
             self.max_bereich_schritte = [5, 10]
-        elif schwierigkeit == 3:
+        elif self.schwierigkeit == 3:
             self.max_bereich_schritte = [10, 15]
         else:
             raise ValueError
         
         # Anzahl Batterien festlegen (Anzahl Züge)
-        if schwierigkeit == 1:
+        if self.schwierigkeit == 1:
             self.anzahl_batterien = 5
-        elif schwierigkeit == 2:
+        elif self.schwierigkeit == 2:
             self.anzahl_batterien = 10
-        elif schwierigkeit == 3:
+        elif self.schwierigkeit == 3:
             self.anzahl_batterien = 15
         else:
             raise ValueError
         
-
+        # Speicherung der Batterien
+        self.batterien = []
         aktueller_punkt = startpunkt.copy()
         
-        anzahl_schritte = randint(*self.max_bereich_schritte)
-                
-        print(f"Startpunkt war {startpunkt}")
-        for i in range(anzahl_schritte):
-            x_neu, y_neu = self.zufälligerSchritt(*aktueller_punkt)
-            aktueller_punkt = x_neu, y_neu
-
-        print(f"neuer Punkt nach {anzahl_schritte} Schritten ist {aktueller_punkt}")
-
+        gesamten_schritte = []
         
+        print(f">> Es werden {self.anzahl_batterien} Batterien erzeugt")
+        for a in range(self.anzahl_batterien):
+            
+            batterien_x_y = list(map(
+                lambda batterie: batterie[:2], self.batterien
+            ))
+                        
+            anzahl_schritte = randint(*self.max_bereich_schritte)
+                                
+            positionen = []
+            
+            s = anzahl_schritte
+            while s > 0:
+                neue_position = self.randomStep(*aktueller_punkt, batterien_x_y)
+                if neue_position == None:
+                    print("naj")
+                    positionen.pop()
+                    s += 1
+                else:
+                    positionen.append(neue_position)
+                    s -= 1
+                
+                if positionen:
+                    aktueller_punkt = positionen[-1]
+                else:
+                    aktueller_punkt = gesamten_schritte[-1]
+                
+                
+            
+            self.batterien.append(
+                (*aktueller_punkt, anzahl_schritte)
+            )
+            
+            gesamten_schritte.extend(positionen)
+            
+            
+            
+            
+        gesamten_schritte.reverse()
+        # Konvertierung in Schrittanweisungen
+        self.schrittanweisungen_roboter_lösung = self.wegInAnweisungen(gesamten_schritte)
+        
+        
+        
+        self.erzeugeUmgebung()
+        
+     
     
-    def zufälligerSchritt(self, x_akt, y_akt):
+    def zufälligerSchritt(self, x_akt: int, y_akt: int, restliche_batterien_x_y: list):
         x_start, y_start = x_akt, y_akt
         """ zufälliger Schritt wird ausgewählt
         
@@ -107,19 +150,160 @@ class SpielErzeugen:
         if schritt_möglich:
             
             # falls die neuen Koordinaten und die alten Koordinaten identisch sind
+            # oder auf den aktuellen Koordinaten sich bereits eine Batterie befindet
             # --> rekursiver Aufruf
-            if x_akt == x_start and y_akt == y_start:
-                return self.zufälligerSchritt(x_akt, y_akt)
+            if x_akt == x_start and y_akt == y_start or (x_akt, y_akt) in restliche_batterien_x_y:
+                return self.zufälligerSchritt(x_start, y_start, restliche_batterien_x_y)
             
             else:
-                
-                print(f"neue Koordinaten x: {x_akt}/ y: {y_akt}")
                 return x_akt, y_akt
         
         else:
-            return self.zufälligerSchritt(x_akt, y_akt)
+            return self.zufälligerSchritt(x_start, y_start, restliche_batterien_x_y)
+
+
+    def randomStep(self, x_akt: int, y_akt: int, restliche_batterien: list):
+        schritte = []
+        aktuelle_position = [x_akt, y_akt]
+        
+        # Die Positionen der Felder unterhalb, oberhalb, rechts und links des Ausgangsfeld werden bestimmt
+        unten = aktuelle_position.copy()
+        unten[1] += 1
+        unten = tuple(unten)
+        if unten in restliche_batterien:
+            unten = None
+        
+        oben = aktuelle_position.copy()
+        oben[1] -= 1
+        oben = tuple(oben)
+        if oben in restliche_batterien:
+            oben = None
+        
+        rechts = aktuelle_position.copy()
+        rechts[0] += 1
+        rechts = tuple(rechts)
+        if rechts in restliche_batterien:
+            rechts = None
+        
+        links = aktuelle_position.copy()
+        links[0] -= 1    
+        links = tuple(links)
+        if links in restliche_batterien:
+            links = None    
+        
+        # Je nach Lage der aktuellen Position werden die Nachbarfelder zu den möglichen Schritten hinzugefügt
+        if y_akt > 1:            
+            schritte.append(oben)
+        
+        if y_akt < self.size:
+            schritte.append(unten)
+        
+        if x_akt > 1:
+            schritte.append(links)
+        
+        if x_akt < self.size:
+            schritte.append(rechts)
+        
+        # Alle 'None' werden entfernt
+        [schritte.remove(None) for i in range(schritte.count(None))]
+        
+        
+        # falls mögliche Nachbarfeld gefunden wurden
+        # und somit ein Schritt möglich ist
+        if schritte:
+            # auszuwählender Bereich wird bestimmt            
+            bereich = len(schritte)-1
+            
+            # ein zufälliger Index im Bereich wird ausgewählt
+            zufalls_index = randint(0, bereich)
+            
+            # über den Index wird das zufällige Nachbarfeld ausgewählt
+            # und somit der Zufallsschritt bestimmt
+            zufallsschritt = schritte[zufalls_index]
+            
+            print("neuer Zufallsschritt", zufallsschritt)
+
+            
+            return zufallsschritt
+        
+        
+        # falls nicht, wird None zurückgegeben
+        else:
+            print("None wird zurückgegeben")
+            return None
+   
+    def wegInAnweisungen(self, punkte: list):
+        """ konvertierung von einzelnen Punkten in Schritte """     
+        abfolge_schritte = []
+        
+        for index in range(len(punkte)):
+            if index > 0:
+                # Teilweg aus den Punkten P1 und P2
+                p1 = punkte[index-1]
+                p2 = punkte[index]
+               
+                # die Differenzen der x- und y-Koordinaten wird berechnet
+                delta_x = p2[0] - p1[0]
+                delta_y = p2[1] - p1[1]
+               
+                # je nach Differenz muss eine bestimmte Bewegung ausgeführt werden,
+                # um von P1 zu P2 zu gelangen
+                
+                # nach rechts
+                if delta_x > 0:
+                    bewegung = 3
+
+                # nach links
+                elif delta_x < 0:
+                    bewegung = 2
+
+                # nach unten
+                elif delta_y > 0:
+                    bewegung = 1
+
+                # nach oben
+                elif delta_y < 0:
+                    bewegung = 0
+        
+                abfolge_schritte.append(bewegung)
+        
+        return abfolge_schritte
+            
         
 
+
+
+        
+        
+        
+    def erzeugeUmgebung(self):
+        """
+        """
+        # der Startpunkt des Roboters ist die letzte Batterie 
+        roboter = self.batterien.pop(-1)
+        anzahl_batterien = len(self.batterien)
+
+        print(f">> Spielgröße: {self.size}")
+        print(f">> Startposition des Roboters {roboter}")
+        print(f">> Anzahl der Batterien: {anzahl_batterien}")
+        print(f">> Koordinaten der Batterien: {self.batterien}")
+        
+        # Ausgabe im BwInf-Format
+        print(f"\n >> Ausgabe im BwInf-Format: \n{self.size}")
+        print(f"{roboter[0]},{roboter[1]},{roboter[2]}")
+        print(f"{anzahl_batterien}")
+        for batterie in self.batterien:
+            print(f"{batterie[0]},{batterie[1]},{batterie[2]}")
+        
+           
+        umgebung = Environment(self.size, roboter, len(self.batterien), self.batterien)
+        umgebung._build_stromrallye()
+        
+        # for schritt in self.schrittanweisungen_roboter_lösung:
+        #     umgebung.step(schritt)
+        #     umgebung.update()
+        
+        tk.mainloop()
 
 
 class Environment(tk.Tk, object):
@@ -361,9 +545,7 @@ class Environment(tk.Tk, object):
                 
                 self.roboter[(x_robo, y_robo, ladung_batterie)] = self.roboter.pop((x_robo, y_robo, ladung_roboter))
 
-        self._update_gui()
-
-        
+        self._update_gui()      
         
         
     
@@ -373,7 +555,7 @@ class Environment(tk.Tk, object):
         
 if __name__ == '__main__':
     
-    spiel = SpielErzeugen(3)
+    spiel = SpielErzeugen(2)
         
         
         
