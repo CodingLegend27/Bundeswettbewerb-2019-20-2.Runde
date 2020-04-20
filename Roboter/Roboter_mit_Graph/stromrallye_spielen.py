@@ -1,25 +1,49 @@
 #!/usr/bin/python
 
-
 # 2. Runde Bundeswettbewerb Informatik 2019/20
-# Autor: Christoph Waffler
 # Aufgabe 1: Stromrallye (Spielen)
+__author__ = "Christoph Waffler"
+__version__ = 20200420
 
 from random import * 
-import tkinter as tk
+
+import sys
+# Import von Tkinter
+if sys.version_info.major == 2:
+    import Tkinter as tk
+    import Tkinter.scrolledtext as scrolledtext
+    from Tkinter import messagebox
+    from Tkinter import ttk
+else:
+    import tkinter as tk
+    from tkinter import messagebox
+    import tkinter.scrolledtext as scrolledtext
+    from tkinter import ttk
+    
 import numpy as np
 import time
 
 class SpielErzeugen:
-    def __init__(self, schwierigkeit: int):
-        """ Schwierigkeit ist im Bereich von 1 bis 3:
+    def __init__(self, schwierigkeit: int, größe_spielfeld: int):
+        """  Erstellen einer Spielsituation
+        
+        Schwierigkeit ist im Bereich von 1 bis 3:
             - 1 --> leicht
             - 2 --> mittel
             - 3 --> schwer
+        
+        Größen des Spielfelds
+            - 10 --> 10 x 10
+            - 12 --> 12 x 12
+            - 14 --> 14 x 14
+
         """
+        # Start der Zeitmessung
+        self.start_zeit = time.time()
+        
+        # Klassenvariablen werden zugewiesen
         self.schwierigkeit = schwierigkeit
-        # Quadratisches Spielfeld mit 8 x 8 Feldern
-        self.size = 8
+        self.size = größe_spielfeld
                
         
         # Zufallszahlen für die x- und y-Koordinate des Startpunktes
@@ -31,11 +55,11 @@ class SpielErzeugen:
         
         # Bereich der Schritte festlegen
         if self.schwierigkeit == 1:
-            self.max_bereich_schritte = [1, 5]
+            self.bereich_schritte = [3, 5]
         elif self.schwierigkeit == 2:
-            self.max_bereich_schritte = [5, 10]
+            self.bereich_schritte = [5, 10]
         elif self.schwierigkeit == 3:
-            self.max_bereich_schritte = [10, 15]
+            self.bereich_schritte = [10, 15]
         else:
             raise ValueError
         
@@ -51,144 +75,125 @@ class SpielErzeugen:
         
         # Speicherung der Batterien
         self.batterien = []
+        
+        # aktueller Punkt wird auf den zufällig ausgewählten Startpunkt gesetzt
         aktueller_punkt = startpunkt.copy()
         
-        gesamten_schritte = []
+        # in gesamte_positionen werden alle nacheinander besuchten Felder gespeichert
+        gesamte_positionen = [aktueller_punkt]
         
-        print(f">> Es werden {self.anzahl_batterien} Batterien erzeugt")
+        # für jede Batterie:
         for a in range(self.anzahl_batterien):
             
+            # x- und y-Koordinaten der bisher gespeicherten Batterien wird ermittelt
             batterien_x_y = list(map(
                 lambda batterie: batterie[:2], self.batterien
             ))
-                        
-            anzahl_schritte = randint(*self.max_bereich_schritte)
+            
+            # Anzahl der Schritte wird zufällig bestimmt                     
+            anzahl_schritte = randint(*self.bereich_schritte)
                                 
+            # besuchte Felder bevor eine neue Batterie 'gelegt' wird
             positionen = []
             
+            # mithilfe von s wird die while-Schleife gesteuert
             s = anzahl_schritte
-            while s > 0:
+            while s >= 0:
+                
+                # falls alle Schritte gemacht wurden
+                # und die Batterie im nächsten Schritt gelegt wird,
+                # wird überprüft, ob dieses Feld nicht schon mal durch Schritte bereits besucht wurde
+                # Ist dies der Fall so wird ein noch ein weiterer Schritt gemacht
+                if s == 0:
+                    if aktueller_punkt in gesamte_positionen or aktueller_punkt in positionen[:-1]:
+                        s += 1
+                        anzahl_schritte += 1
+                    else:
+                        # wenn nicht, dann wird s um 1 verringert und die Batterie anschließend gelegt
+                        s -= 1
+                    continue
+            
+                # eine neue Position (neues Feld) wird bestimmt
                 neue_position = self.randomStep(*aktueller_punkt, batterien_x_y)
+                
+                # falls keine neue Position gefunden wurde,
+                # wird noch mal 'zurückgegangen' und ein anderes Feld ausgewählt
                 if neue_position == None:
-                    print("naj")
-                    positionen.pop()
+                    anzahl_schritte += 1
                     s += 1
                 else:
                     positionen.append(neue_position)
                     s -= 1
                 
+                
+                # aktueller Punkt ist das letzte hinzugefügte Feld
                 if positionen:
                     aktueller_punkt = positionen[-1]
                 else:
-                    aktueller_punkt = gesamten_schritte[-1]
+                    # falls in positionen keine Felder besucht wurden, 
+                    # wird das letzte Element von gesamte_positionen ausgewählt
+                    aktueller_punkt = gesamte_positionen[-1]
                 
-                
-            
+            # Auf dem aktuellen Feld (aktueller Punkt) wird eine Batterie gelegt.
+            # Die Ladung der Batterie ist die Anzahl der zurückgelegten Schritte
             self.batterien.append(
                 (*aktueller_punkt, anzahl_schritte)
             )
             
-            gesamten_schritte.extend(positionen)
-            
-            
-            
-            
-        gesamten_schritte.reverse()
-        # Konvertierung in Schrittanweisungen
-        self.schrittanweisungen_roboter_lösung = self.wegInAnweisungen(gesamten_schritte)
+            # die gesamte Liste der besuchten Felder wird erweitert
+            gesamte_positionen.extend(positionen)
         
-        
-        
+        # die besuchten Felder werden umgedreht,
+        # da der Roboter 'von hinten' starten soll
+        gesamte_positionen.reverse()
+        self.gesamte_positionen = gesamte_positionen
+
+        # Spielfeld wird graphisch erzeugt
         self.erzeugeUmgebung()
         
-     
-    
-    def zufälligerSchritt(self, x_akt: int, y_akt: int, restliche_batterien_x_y: list):
-        x_start, y_start = x_akt, y_akt
-        """ zufälliger Schritt wird ausgewählt
+    def randomStep(self, x_akt: int, y_akt: int, vorhandene_batterien: list):
+        """ Methode zum Auswählen eines zufälligen Nachbarfeldes, das besucht werden kann.
         
+        Das zu besuchende Nachbarfeld sollte nicht durch eine Ersatzbatterie bereits belegt sein.
+        
+        Args:
+            x_akt (int): x-Koordinate des Ausgangsfelds
+            y_akt (int): y-Koordinate des Ausgangsfelds
+            vorhandene_batterien (list): Liste mit den x- und y-Koordinaten der bisher erstellten Batterien
+
+        Returns:
+            tuple. Nachbarfeld, das frei ist und somit besucht werden kann        
         """
-        # zufällige Schrittrichtung
-        schritt = randint(0, 3)
-        # 0: Schritt nach oben
-        # 1: Schritt nach unten
-        # 2: Schritt nach links
-        # 3: Schritt nach rechts
-        schritt_möglich = True
-        if schritt == 0:
-            
-            if y_akt == 1: 
-                schritt_möglich = False
-            
-            else:
-                y_akt -= 1
-            
-        elif schritt == 1:
-            
-            if y_akt == self.size:
-                schritt_möglich = False
-                
-            else:
-                y_akt += 1
         
-        elif schritt == 2:
-            
-            if x_akt == 1:
-                schritt_möglich = False
-            
-            else:
-                x_akt -= 1
-        
-        elif schritt == 3:
-            
-            if x_akt == self.size:
-                schritt_möglich = False
-                
-            else:
-                x_akt += 1
-        
-        if schritt_möglich:
-            
-            # falls die neuen Koordinaten und die alten Koordinaten identisch sind
-            # oder auf den aktuellen Koordinaten sich bereits eine Batterie befindet
-            # --> rekursiver Aufruf
-            if x_akt == x_start and y_akt == y_start or (x_akt, y_akt) in restliche_batterien_x_y:
-                return self.zufälligerSchritt(x_start, y_start, restliche_batterien_x_y)
-            
-            else:
-                return x_akt, y_akt
-        
-        else:
-            return self.zufälligerSchritt(x_start, y_start, restliche_batterien_x_y)
-
-
-    def randomStep(self, x_akt: int, y_akt: int, restliche_batterien: list):
+        # in schritte werden die möglichen Nachbarfelder hinzugefügt
         schritte = []
         aktuelle_position = [x_akt, y_akt]
         
         # Die Positionen der Felder unterhalb, oberhalb, rechts und links des Ausgangsfeld werden bestimmt
+        # Diese werden als tuple gespeichert.
+        
         unten = aktuelle_position.copy()
         unten[1] += 1
         unten = tuple(unten)
-        if unten in restliche_batterien:
+        if unten in vorhandene_batterien:
             unten = None
         
         oben = aktuelle_position.copy()
         oben[1] -= 1
         oben = tuple(oben)
-        if oben in restliche_batterien:
+        if oben in vorhandene_batterien:
             oben = None
         
         rechts = aktuelle_position.copy()
         rechts[0] += 1
         rechts = tuple(rechts)
-        if rechts in restliche_batterien:
+        if rechts in vorhandene_batterien:
             rechts = None
         
         links = aktuelle_position.copy()
         links[0] -= 1    
         links = tuple(links)
-        if links in restliche_batterien:
+        if links in vorhandene_batterien:
             links = None    
         
         # Je nach Lage der aktuellen Position werden die Nachbarfelder zu den möglichen Schritten hinzugefügt
@@ -220,20 +225,53 @@ class SpielErzeugen:
             # über den Index wird das zufällige Nachbarfeld ausgewählt
             # und somit der Zufallsschritt bestimmt
             zufallsschritt = schritte[zufalls_index]
-            
-            print("neuer Zufallsschritt", zufallsschritt)
-
-            
+                    
             return zufallsschritt
         
         
         # falls nicht, wird None zurückgegeben
         else:
-            print("None wird zurückgegeben")
             return None
-   
+         
+    def erzeugeUmgebung(self):
+        """ Methode zur Erstellung der graphischen Benutzeroberfläche mithilfe der Klasse Environment """
+        
+        # der Startpunkt des Roboters ist die letzte Batterie 
+        roboter = self.batterien.pop(-1)
+        anzahl_batterien = len(self.batterien)
+
+        self.ende_zeit = time.time()
+        benötigte_zeit = self.ende_zeit - self.start_zeit
+        print(f">> Laufzeit des Programms: {benötigte_zeit} Sekunden \n (Start der Zeitmessung bei Aufruf der main-Methode)\n\n")
+
+        
+        # Konsolenausgabe mit den Daten
+        print(f">> Spielgröße: {self.size}")
+        print(f">> Startposition des Roboters {roboter}")
+        print(f">> Anzahl der Batterien: {anzahl_batterien}")
+        print(f">> Koordinaten der Batterien: {self.batterien}")
+        
+        # Ausgabe im BwInf-Format
+        print(f"\n >> Ausgabe im BwInf-Format: \n{self.size}")
+        print(f"{roboter[0]},{roboter[1]},{roboter[2]}")
+        print(f"{anzahl_batterien}")
+        for batterie in self.batterien:
+            print(f"{batterie[0]},{batterie[1]},{batterie[2]}")
+        
+        # Visualisierung wird erstellt 
+        self.umgebung = Environment(self.size, roboter, len(self.batterien), self.batterien)
+ 
     def wegInAnweisungen(self, punkte: list):
-        """ konvertierung von einzelnen Punkten in Schritte """     
+        """ Methode zur Konvertierung von einzelnen Punkten in Schritte 
+        
+        Args:
+            punkte (list): Liste mit Punkten, aus denen eine Abfolge von Schritten ermittelt werden soll.
+            
+        Returns:
+            list. Abfolge von Schrittanweisungen für den Roboter, z.B. 0 --> Schritt nach oben        
+        """     
+        
+        # in abfolge_schritte werden alle Schrittanweisungen gespeichert
         abfolge_schritte = []
         
         for index in range(len(punkte)):
@@ -267,43 +305,40 @@ class SpielErzeugen:
         
                 abfolge_schritte.append(bewegung)
         
-        return abfolge_schritte
+        return abfolge_schritte             
+  
+    def zeigeLösung(self):    
+        """ Methode zum Ausgeben der Lösung in der Konsole und Visualisierung der Schritte
             
-        
-
-
-
-        
-        
-        
-    def erzeugeUmgebung(self):
+        Diese Methode kann bei Bedarf vom Eingabefenster aufgerufen werden, wenn der Benutzer eine Lösung sehen möchte.
         """
-        """
-        # der Startpunkt des Roboters ist die letzte Batterie 
-        roboter = self.batterien.pop(-1)
-        anzahl_batterien = len(self.batterien)
-
-        print(f">> Spielgröße: {self.size}")
-        print(f">> Startposition des Roboters {roboter}")
-        print(f">> Anzahl der Batterien: {anzahl_batterien}")
-        print(f">> Koordinaten der Batterien: {self.batterien}")
+         
+        # Konvertierung der einzelnen besuchten Felder in Schrittanweisungen für den Roboter
+        schrittanweisungen_roboter_lösung = self.wegInAnweisungen(self.gesamte_positionen)
         
-        # Ausgabe im BwInf-Format
-        print(f"\n >> Ausgabe im BwInf-Format: \n{self.size}")
-        print(f"{roboter[0]},{roboter[1]},{roboter[2]}")
-        print(f"{anzahl_batterien}")
-        for batterie in self.batterien:
-            print(f"{batterie[0]},{batterie[1]},{batterie[2]}")
+        print(f"\n\n> Lösung: \n>> Alle besuchten Felder in richtiger Reihenfolge: \n > {self.gesamte_positionen}")
         
-           
-        umgebung = Environment(self.size, roboter, len(self.batterien), self.batterien)
-        umgebung._build_stromrallye()
+        # Abfolge der Schritte wird von Zahlen zu deutschen Wörtern 'konvertiert'
+        abfolge_schritte_deutsch = []
+        for schritt in schrittanweisungen_roboter_lösung:
+            if schritt == 0:
+                abfolge_schritte_deutsch.append('oben')
+            elif schritt == 1:
+                abfolge_schritte_deutsch.append('unten')
+            elif schritt == 2:
+                abfolge_schritte_deutsch.append('links')
+            elif schritt == 3:
+                abfolge_schritte_deutsch.append('rechts')
         
-        # for schritt in self.schrittanweisungen_roboter_lösung:
-        #     umgebung.step(schritt)
-        #     umgebung.update()
+        print(f"\n>> Abfolge von {len(abfolge_schritte_deutsch)} Schritten für den Roboter in deutscher Sprache: \n > {abfolge_schritte_deutsch}")
+        
+        # Roboter wird mithilfe der Schrittanweisungen gesteuert
+        for schritt in schrittanweisungen_roboter_lösung:
+            self.umgebung.step(schritt)
+            self.umgebung.update()
         
         tk.mainloop()
+    
 
 
 class Environment(tk.Tk, object):
@@ -548,15 +583,120 @@ class Environment(tk.Tk, object):
         self._update_gui()      
         
         
+class EingabeFenster(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        
+        self.spiel = None
+        
+        # Eingabefenster wird erstellt
+        self.erstelleEingabeFenster()
     
+    def erstelleEingabeFenster(self):
+        # Label für Schwierigkeitsgrad
+        self.label1 = tk.Label(self, text="Schwierigkeitsgrad auswählen:")
+        self.label1.pack(side=tk.TOP)
+        
+        # Eine Combobox mit den Schwierigkeitsgraden wird erstellt
+        self.schwierigkeitsgrade = {'Leicht': 1, 'Mittel': 2, 'Schwer': 3}
+        self.auswahl_liste_schwierigkeitsgrad = ttk.Combobox(
+            self,
+            values=list(self.schwierigkeitsgrade.keys()),
+            state='readonly'
+        )
+        self.auswahl_liste_schwierigkeitsgrad.pack(side=tk.TOP)
+        
+        # Label für die Größe des Spielfelds
+        self.label2 = tk.Label(self, text="Größe des Spielfelds auswählen:")
+        self.label2.pack(side=tk.TOP)
+        
+        # Eine Combobox mit den Größen des Spielfelds
+        self.größen_spielfeld = {'10 x 10': 10, '12 x 12': 12, '14 x 14': 14}
+        self.auswahl_liste_größe_spielfeld = ttk.Combobox(
+            self,
+            values=list(self.größen_spielfeld.keys()),
+            state='readonly'
+        )
+        self.auswahl_liste_größe_spielfeld.pack(side=tk.TOP)
+        
+        # blauer Button für die Anzeige der Lösung
+        self.button_lösung = tk.Button(
+            self,
+            width=10,
+            height=3,
+            text='Lösung anzeigen\n+ Roboter automatisch bewegen lassen',
+            command=self.zeigeLösung)
+        
+        self.button_lösung['bg'] = '#52CDFB'
+        self.button_lösung.pack(side=tk.BOTTOM, fill=tk.BOTH)
         
         
+        # gelber Start-Button
+        self.button_start = tk.Button(
+            self,
+            width=10,
+            height=3,
+            text="Erzeuge Spielumgebung",
+            command=self.starte)
+        
+        self.button_start['bg'] = 'yellow'
+        self.button_start.pack(side=tk.BOTTOM, fill=tk.BOTH)
+       
+    def starte(self):
+        """ Start-Methode, die vom Start-Button aufgerufen wird. 
+            
+            Dabei wird eine neue Spielsituation mithilfe der Klasse SpielErzeugen erstellt. 
+        """
+        
+        # boolescher Wert zum Überprüfen, ob das Eingabefenster vom Benutzer richtig bedient wurde
+        korrekte_eingabe = True
+
+        # Der bei der Combobox ausgewählte Schwierigkeitsgrad wird ermittelt.
+        ausgewählter_grad = self.auswahl_liste_schwierigkeitsgrad.get()
+        
+        if ausgewählter_grad != "":
+            schwierigkeitsgrad = self.schwierigkeitsgrade[ausgewählter_grad]
+        
+        else:  
+            messagebox.showwarning("Fehler!", "Schwierigkeitsgrad angeben!")
+            korrekte_eingabe=False              
+
+        # Ebenfalls wird die ausgewählte Größe abgerufen.
+        ausgewählte_größe = self.auswahl_liste_größe_spielfeld.get()
+        
+        if ausgewählte_größe != "":
+            größe_spielfeld = self.größen_spielfeld[ausgewählte_größe]            
+        
+        else:
+            messagebox.showwarning("Fehler!", "Größe des Spielfelds auswählen!")
+            korrekte_eingabe=False
+
+
+        # Falls eine korrekte Eingabe erfolgte, kann nun eine Spielsituation mit den ausgewählten Parametern erstellt werden.
+        if korrekte_eingabe:            
+            # Klasse SpielErzeugen wird aufgerufen
+            self.spiel = SpielErzeugen(schwierigkeitsgrad, größe_spielfeld)
+                
+    def zeigeLösung(self):
+        """ Methode zum Aufzeigen einer Lösung mithilfe der Methode zeigeLösung des Spiel-Objekts, 
+            die die Spielsituation erstellt hat.
+        """
+        # falls schon ein Spiel erstellt wurde
+        if self.spiel:
+            self.spiel.zeigeLösung()
+        
+        # Fehlermeldung falls der Button zu früh betätigt wurde
+        else:
+            messagebox.showerror("Fehler!", "Spielsituation wurde noch nicht erzeugt!")
+    
             
         
 if __name__ == '__main__':
-    
-    spiel = SpielErzeugen(2)
-        
-        
-        
-        
+    root = tk.Tk()
+    root.title("Eingabefenster")
+    root.geometry('400x200')
+    EingabeFenster(root).pack(side="top", fill="both", expand=True)
+    root.mainloop()
+
+

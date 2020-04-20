@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 # 2. Runde Bundeswettbewerb Informatik 2019/20
-# Autor: Christoph Waffler
 # Aufgabe 1: Stromrallye (Lösen)
+__author__ = "Christoph Waffler"
+__version__ = 20200420
 
 from collections import defaultdict
 import copy
@@ -11,12 +12,15 @@ import time
 
 import sys
 import random
+# Import von Tkinter
 if sys.version_info.major == 2:
     import Tkinter as tk
+    import Tkinter.scrolledtext as scrolledtext
     from Tkinter import messagebox
 else:
     import tkinter as tk
     from tkinter import messagebox
+    import tkinter.scrolledtext as scrolledtext
 
 import math
 
@@ -83,7 +87,7 @@ class Berechnungen:
             
             # alle erreichbaren Batterien werden ermittelt
             erreichbare_batterien = self.erreichbareBatterien(*batterie, restliche_batterien)
-           
+            
             for erreichbare_batterie in erreichbare_batterien:                
                 # die erreichbaren Batterien bilden zusammen mit der aktuellen Batterie eine Kante,                
                 # wobei die aktuelle Batterie der Startknoten der Kante und die erreichbare Batterie der Endknoten der Kante ist    
@@ -99,7 +103,7 @@ class Berechnungen:
                 # die Gewichtung der Kante ist die verbrauchte Ladung von der aktuellen Batterie zur erreichbaren Batterie                
                 # Kante wird zum Graphen hinzugefügt
                 self.graph.add_Kante((x_start, y_start),
-                                     (x_ende, y_ende), verbrauchte_ladung)
+                                        (x_ende, y_ende), verbrauchte_ladung)
 
         
         # Dasselbe wird ebenfalls für den Roboter durchgeführt:
@@ -115,7 +119,7 @@ class Berechnungen:
             
             # Kante wird zum Graphen hinzugefügt
             self.graph.add_Kante((x_start, y_start),
-                                 (x_ende, y_ende), verbrauchte_ladung)
+                                    (x_ende, y_ende), verbrauchte_ladung)
 
 
         # Ein Dictionary zum Speichern der aktuellen Ladungen der Batterien wird erstellt
@@ -204,7 +208,7 @@ class Berechnungen:
                 
                 # Prüfen, ob eine Tuple in der Liste ist
                 if any(isinstance(item, tuple) for item in liste_nachbarn2):
-                   
+                    
                     # Liste wird so sortiert, dass eine Zahl am Anfang ist, welche ausgewählt wird
                     liste_nachbarn2.sort(key=lambda x: (x is None, x))
                     # dies ist der erste Nachbar
@@ -243,7 +247,7 @@ class Berechnungen:
 
                         restliche_ladung -= 1
 
-    
+
         if restliche_ladung == 1:
 
             # Wenn am oberen Rand (also y-Koordinate gleich 1)
@@ -275,15 +279,15 @@ class Berechnungen:
         
         # Umgebung wird erstellt
         env = Environment(self.size, self.roboter,
-                          self.anzahl_batterien, self.batterien)
+                            self.anzahl_batterien, self.batterien)
         
         env._update_gui()
         # für jeden Schritt wird die Umgebung aufgerufen
         for schritt in abfolge_schritte:
             env.step(schritt)
             env.update()
-       
-
+   
+   
     def erreichbareBatterien(self, x_start: int, y_start: int, ladung: int, restliche_batterien: list):
         """ Mithilfe der Manhattan-Distanz werden alle Batterie ermittelt,
             die von dem gegebenen Punkt aus erreichbar sind.
@@ -562,8 +566,7 @@ class Berechnungen:
             
             # nicht ganz rechts am Rand
             if x_akt < self.size:
-                nachbarn.append(rechts)
-            
+                nachbarn.append(rechts)            
 
             return nachbarn
 
@@ -785,7 +788,7 @@ class Berechnungen:
                 # Das Dictionary zum Speichern der aktuellen Ladungen wird ebenfalls kopiert,
                 # da sonst dieselben Probleme beim rekursiven Aufruf auftreten würden (wie bei graph).
                 return_item = self.dfs(graph=copy.deepcopy(graph), aktueller_knoten=knoten,
-                                       alte_ladung=(
+                                        alte_ladung=(
                     aktuelle_ladung-gewichtung),
                     a_alte_ladung=alte_ladung,
                     aktuelle_ladung_batterien=aktuelle_ladung_batterien.copy(),
@@ -797,6 +800,7 @@ class Berechnungen:
                     return return_item
 
                 # 'else:' Falls nichts zurückgegeben wird, geht dieser Teilzweig ins Leere und wird nicht weiter beachtet.
+
 
     def filterListeBatterien(self, aktuelle_ladung_batterien: dict):
         """ Als Liste der restlichen Batterien werden nur die x- und y-Koordinaten aller Batterien benötigt,
@@ -820,25 +824,22 @@ class Berechnungen:
         return restliche_batterien
         
     def heuristik_dfs(self, x: int, y: int, batterien_aktuelle_ladung: dict, graph):
-        """ Heuristische Funktion zum Abschätzen, welcher Knoten bei der DFS als nächster ausgewählt werden soll
-            --> Liefert einen Wert, der mit den anderen Nachbarn verglichen werden kann
-        """
         """ Diese Methode dient als Optimierung der Tiefensuche (depth-first-search, DFS).
-        
+
         Diese Methode liefert einen Wert, der die Auswahl zwischen den Nachbarknoten eines Knoten eines Graphen optimieren soll.
-        
+
         Dabei wird der Wert zwischen den Nachbarknoten verglichen 
         und die Suche wird mit dem Nachbarknoten mit dem maximialen Wert fortgesetzt.
-        
+
         Der Wert wird von zwei Faktoren beeinflusst: 
             - Ladung der Batterie (des aktuellen Nachbarknoten)
             - Abstand zum Startpunkt des Roboters
-        
+
         Die Ladung der aktuellen Batterie (=Nachbarknoten) wird mithilfe des gegebenen Dictionary ermittelt.
-        
+
         Da der diejenigen Knoten priorisiert werden sollen, die eine höhere Ladung haben, wird der Wert der Ladung quadriert.
         Somit ist der Betrag der Ladung gegenüber dem Abstand zum Roboter höher gewichtet
-        
+
         Args:
             x (int): x-Koordinate des aktuellen Knoten
             y (int): y-Koordinate des aktuellen Knoten
@@ -851,16 +852,16 @@ class Berechnungen:
                     
         # x- und y-Koordinate des Startpunktes des Roboters werden benötigt
         roboter = self.roboter[:2]
-        
+
         # euklidischer Abstand wird verwendet
         abstand = self.euklidischerAbstand(x, y, *roboter)
-        
+
         # aktuelle Ladung der Batterie wird ausgelesen
         aktuelle_ladung_batterie = batterien_aktuelle_ladung[(x, y)]
-        
+
         # das Produkt aus dem Abstand und dem Quadrat der Ladung wird zurückgegeben
-        return  aktuelle_ladung_batterie**2 * abstand
-            
+        return aktuelle_ladung_batterie**2 * abstand
+        
     def euklidischerAbstand(self, x1: int, y1: int, x2: int, y2: int):
         """ Methode zur Berechnung des euklidischen Abstands zwischen zwei Punkten P1 und P2.
         
@@ -884,16 +885,7 @@ class Berechnungen:
         delta_y = y2 - y1
         distanz = math.sqrt(delta_x**2 + delta_y**2)
         return distanz
-        
-        
-    def anzahlErreichbarerBatterien(self, x: int, y: int, ladung: int, restliche_batterien: list):
-        """ berechnet mithilfe der Methode erreichbareBatterien() die Anzahl der erreichbaren Batterien
-        """
-        erreichbare_batterien = self.erreichbareBatterien(
-            x, y, ladung, restliche_batterien)
-        anzahl = len(erreichbare_batterien)
-        return anzahl
-
+ 
 class Graph:
     """ gerichteter Graph zum Verwalten von Knoten und Kanten mit Gewichtungen """
 
@@ -977,26 +969,21 @@ class EingabeFenster(tk.Frame):
         self.erstelleEingabeFenster()
 
     def erstelleEingabeFenster(self):
-        # Scrollbar
-        self.scrollbar = tk.Scrollbar(self)
-        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Eingabefeld
-        self.textfeld = tk.Text(self, width=40, height=10)
-        self.textfeld.insert(tk.END, "Eingabe bitte hier einfügen")
+        self.textfeld = scrolledtext.ScrolledText(self, width=40, height=10)
+        self.textfeld.insert(tk.END, "Spielsituation bitte hier im Format des BwInf einfügen:")
         self.textfeld.pack(side=tk.TOP)
-
-        # Konfiguration der Scrollbar und des Textfelds
-        self.scrollbar.config(command=self)
-        self.textfeld.config(yscrollcommand=self.scrollbar.set)
         
         # Button zum Starten
         self.button_start = tk.Button(
             self,
             width=10,
-            height=5,
+            height=3,
             text="Starte Berechnungen",
             command=self.starte)
+        # Gelber Button
+        self.button_start['bg'] = 'yellow'
         self.button_start.pack(side=tk.BOTTOM, fill=tk.BOTH)
          
     def starte(self):
@@ -1254,5 +1241,6 @@ class Environment(tk.Tk, object):
 if __name__ == '__main__':
     root = tk.Tk()
     root.title("Eingabefenster")
+    root.geometry('400x200')
     EingabeFenster(root).pack(side="top", fill="both", expand=True)
     root.mainloop()
