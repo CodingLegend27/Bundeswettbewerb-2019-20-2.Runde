@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
 # 2. Runde Bundeswettbewerb Informatik 2019/20
-# Autor: Christoph Waffler
 # Aufgabe 3: Abbiegen
+__author__ = "Christoph Waffler"
+__version__ = 20200420
 
-from collections import defaultdict, deque
+
+from collections import defaultdict
 import math
-from queue import PriorityQueue
-import heapq
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import numpy as np
