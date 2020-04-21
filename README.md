@@ -1,14 +1,14 @@
 # 2. Runde des Bundeswettbewerb Informatik 2019/20
-jetzt nur noch in Einzelarbeit
-
 Implementierung erfolgt in der Programmiersprache Python
 
 ## Material
 Aufgabenblatt: https://bwinf.de/fileadmin/BwInf/38/aufgaben382.pdf
-
 Material: https://bwinf.de/bundeswettbewerb/38/2/material/
 
 ### Aufgabe 1: Stromrallye
+* Ausführbare Datei: [abbiegen.py](Abbiegen/abbiegen.py)
+* dazugehörige Dokumentation: [Stromrallye Dokumentation](Abbiegen/Aufgabe3_Abbiegen.pdf)
+
 Beispieleingaben:
 1. https://bwinf.de/fileadmin/user_upload/stromrallye0.txt
 2. https://bwinf.de/fileadmin/user_upload/stromrallye1.txt
