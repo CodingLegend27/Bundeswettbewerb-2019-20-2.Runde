@@ -5,7 +5,6 @@
 __author__ = "Christoph Waffler"
 __version__ = 20200420
 
-
 from collections import defaultdict
 import math
 import matplotlib.pyplot as plt
@@ -544,7 +543,6 @@ class Berechnungen:
 
         return steigung
 
-
 class Graph:
     """ Klasse Graph zum Verwalten von Knoten und Kanten mit ungerichteten Gewichtungen """
 
@@ -653,7 +651,6 @@ class EingabeFenster(tk.Frame):
         # den der Roboter zurücklegen muss, damit alle Batterien leer sind
         b = Berechnungen(eingabe, maximale_verlängerung, erweiterung)
 
-
 class Koordinatensystem():
     def __init__(self, erweiterung_minAbbiegen):
         self.erweiterung_minAbbiegen = erweiterung_minAbbiegen
@@ -731,7 +728,6 @@ class Koordinatensystem():
         ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         
         plt.show()
-
 
 if __name__ == '__main__':
     root = tk.Tk()
