@@ -6,7 +6,7 @@ Aufgabenblatt: https://bwinf.de/fileadmin/BwInf/38/aufgaben382.pdf
 Material: https://bwinf.de/bundeswettbewerb/38/2/material/
 
 Von den gegebenen 3 Aufgaben mussten 2 bearbeitet werden.
-Zu jeder Dokumentation musste eine eigene Dokumenation erstellt werden, welche mindestens die Themen
+Zu jeder Aufgabe musste eine eigene Dokumenation angefertigt werden, welche mindestens die Themen
 - Lösungsidee
 - Umsetzung
 - Beispiele
@@ -29,7 +29,6 @@ _Die Dokumentation werden sowohl zur Ansicht als auch zum Download bereitgestell
 * Python-Scripts: 
   * [stromrallye_lösen.py](Stromrallye/stromrallye_lösen.py)
   * [stromrallye_spielen.py](Stromrallye/stromrallye_spielen.py)
-
 * dazugehörige Dokumentation:
   * [Ansicht Dokumentation](https://nbviewer.jupyter.org/github/CodingLegend27/Bundeswettbewerb-2019-20-2.Runde/blob/master/Stromrallye/Aufgabe1_Stromrallye.pdf)
   * [Download Dokumentation](Stromrallye/Aufgabe1_Stromrallye.pdf)
@@ -55,12 +54,12 @@ _Die Dokumentation werden sowohl zur Ansicht als auch zum Download bereitgestell
  
  ------
  
- ### Beispieleingaben
+ ### Beispieleingaben:
  
 * [Beispiel abbiegen0.txt](Abbiegen/abbiegen0.txt)
 * [Beispiel abbiegen1.txt](Abbiegen/abbiegen1.txt)
 * [Beispiel abbiegen2.txt](Abbiegen/abbiegen2.txt)
 * [Beispiel abbiegen3.txt](Abbiegen/abbiegen3.txt)
-* [eigenes Beispiel](Abbiegen/eigenes Beispiel.txt)
+* [eigenes Beispiel](Abbiegen/eigenesBeispiel.txt)
 
 
