@@ -2,7 +2,7 @@
 Implementierung erfolgt in der Programmiersprache Python
 
 ## Material
-Aufgabenblatt: https://bwinf.de/fileadmin/BwInf/38/aufgaben382.pdf
+Aufgabenblatt: https://bwinf.de/fileadmin/bundeswettbewerb/38/aufgaben382.pdf
 
 Material: https://bwinf.de/bundeswettbewerb/38/2/material/
 
@@ -25,7 +25,7 @@ Die Programme werden dort ebenfalls ausführlich erklärt.
 
 Für die Programme sind die Beispieleingaben ebenfalls verlinkt, die der Bundeswettbewerb zur Verfügung gestellt hat.
 
-_Die Dokumentation werden sowohl zur Ansicht als auch zum Download bereitgestellt._
+_Die Dokumentationen werden sowohl zur Ansicht als auch zum Download bereitgestellt._
 
 ## Aufgabe 1: Stromrallye
 * Python-Scripts: 
