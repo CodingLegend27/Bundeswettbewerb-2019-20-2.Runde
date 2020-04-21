@@ -47,7 +47,8 @@ _Die Dokumentation werden sowohl zur Ansicht als auch zum Download bereitgestell
 
 ## Aufgabe 3: Abbiegen?
 
-* Python-Script: [abbiegen.py](Abbiegen/abbiegen.py)
+* Python-Script: 
+  * [abbiegen.py](Abbiegen/abbiegen.py)
 * dazugehörige Dokumentation: 
   * [Ansicht Dokumenation](https://nbviewer.jupyter.org/github/CodingLegend27/Bundeswettbewerb-2019-20-2.Runde/blob/master/Abbiegen/Aufgabe3_Abbiegen.pdf)
   * [Download Dokumentation](Abbiegen/Aufgabe3_Abbiegen.pdf)
