@@ -7,6 +7,7 @@ Aufgabenblatt: https://bwinf.de/fileadmin/BwInf/38/aufgaben382.pdf
 Material: https://bwinf.de/bundeswettbewerb/38/2/material/
 
 Von den gegebenen 3 Aufgaben mussten 2 bearbeitet werden.
+
 Zu jeder Aufgabe musste eine eigene Dokumenation angefertigt werden, welche mindestens die Themen
 - Lösungsidee
 - Umsetzung
