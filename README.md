@@ -1,5 +1,5 @@
 # 2. Runde des Bundeswettbewerb Informatik 2019/20
-Implementierung erfolgt in der Programmiersprache Python
+Eine Implementierung erfolgte in der Programmiersprache Python.
 
 ## Material
 Aufgabenblatt: https://bwinf.de/fileadmin/bundeswettbewerb/38/aufgaben382.pdf
