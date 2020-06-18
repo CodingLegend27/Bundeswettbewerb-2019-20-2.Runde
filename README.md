@@ -3,9 +3,9 @@ Eine Implementierung erfolgte in der Programmiersprache Python.
 
 ----- 
 Update 18.06.2020:
-Die Bewertung für meine Einsendung wurde soeben hochgeladen.
-Ich habe den 1. Preis erhalten und bin in der 2. Runde weitergekommen.
-PDF der Bewertung kann [hier](Bundeswettbewerb-2019-20-2.Runde/Bewertung Einsendung 2. Runde.pdf) eingesehen werden.
+* Die Bewertung für meine Einsendung wurde soeben hochgeladen.
+* Ich habe den 1. Preis erhalten und bin in der 2. Runde weitergekommen.
+* PDF der Bewertung kann [hier](Bewertung%20Einsendung%202.%20Runde.pdf) eingesehen werden.
 
 
 -----
