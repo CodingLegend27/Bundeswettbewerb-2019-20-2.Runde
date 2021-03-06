@@ -36,8 +36,6 @@ Die Programme werden dort ebenfalls ausführlich erklärt.
 
 Für die Programme sind die Beispieleingaben ebenfalls verlinkt, die der Bundeswettbewerb zur Verfügung gestellt hat.
 
-_Die Dokumentationen werden sowohl zur Ansicht als auch zum Download bereitgestellt._
-
 -------
 
 ## Aufgabe 1: Stromrallye
@@ -45,8 +43,7 @@ _Die Dokumentationen werden sowohl zur Ansicht als auch zum Download bereitgeste
   * [stromrallye_lösen.py](Stromrallye/stromrallye_lösen.py)
   * [stromrallye_spielen.py](Stromrallye/stromrallye_spielen.py)
 * dazugehörige Dokumentation:
-  * [Ansicht Dokumentation](https://nbviewer.jupyter.org/github/CodingLegend27/Bundeswettbewerb-2019-20-2.Runde/blob/master/Stromrallye/Aufgabe1_Stromrallye.pdf)
-  * [Download Dokumentation](Stromrallye/Aufgabe1_Stromrallye.pdf)
+  * [Dokumentation](Stromrallye/Aufgabe1_Stromrallye.pdf)
   
 
 ### Beispieleingaben:
@@ -65,8 +62,7 @@ _Die Dokumentationen werden sowohl zur Ansicht als auch zum Download bereitgeste
 * Python-Script: 
   * [abbiegen.py](Abbiegen/abbiegen.py)
 * dazugehörige Dokumentation: 
-  * [Ansicht Dokumenation](https://nbviewer.jupyter.org/github/CodingLegend27/Bundeswettbewerb-2019-20-2.Runde/blob/master/Abbiegen/Aufgabe3_Abbiegen.pdf)
-  * [Download Dokumentation](Abbiegen/Aufgabe3_Abbiegen.pdf)
+  * [Dokumentation](Abbiegen/Aufgabe3_Abbiegen.pdf)
  
  
  ### Beispieleingaben:
